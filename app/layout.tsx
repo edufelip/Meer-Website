@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Lexend, Space_Grotesk } from "next/font/google";
-import { androidPackage, appName, iosAppStoreId } from "../src/urls";
+import { androidPackage, appName, iosAppStoreId, webBaseUrl } from "../src/urls";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -18,11 +18,13 @@ export const metadata: Metadata = {
   description: "Descubra brechós, salve favoritos e compartilhe achados com facilidade.",
   appLinks: {
     ios: {
+      url: webBaseUrl,
       app_store_id: iosAppStoreId,
       app_name: appName
     },
     android: {
       package: androidPackage,
+      url: webBaseUrl,
       app_name: appName
     }
   }
