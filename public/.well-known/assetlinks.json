@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.edufelip.meer",
+      "sha256_cert_fingerprints": [
+        "7E:4A:73:D5:6F:C9:2E:F9:EC:DB:E6:A4:F1:F8:DF:66:C9:A9:89:10:B4:B1:6C:85:32:B9:93:DC:38:FD:FB:40",
+        "A8:F0:3E:B6:55:01:31:9B:5A:45:1C:2A:57:90:5E:AB:A0:FB:6A:23:A6:33:A8:3B:4A:F7:F5:C4:40:C3:46:36"
+      ]
+    }
+  }
+]
