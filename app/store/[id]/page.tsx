@@ -10,8 +10,8 @@ type StorePageProps = {
 export function generateMetadata({ params }: StorePageProps): Metadata {
   const storeId = decodeURIComponent(params.id);
   return {
-    title: `Guia Brecho - ${storeId}`,
-    description: "Abra o Guia Brecho para ver detalhes desta loja."
+    title: `Guia Brechó - ${storeId}`,
+    description: "Abra o Guia Brechó para ver detalhes desta loja."
   };
 }
 
@@ -48,7 +48,7 @@ export default function StorePage({ params }: StorePageProps) {
         </div>
       </section>
 
-      <footer className="footer">Guia Brecho • {prettyBaseUrl}</footer>
+      <footer className="footer">Guia Brechó • {prettyBaseUrl}</footer>
     </main>
   );
 }

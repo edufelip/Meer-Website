@@ -19,7 +19,7 @@ export default function ResetPasswordPage({
 
       <ResetPasswordForm token={token} />
 
-      <footer className="footer">Guia Brecho • {prettyBaseUrl}</footer>
+      <footer className="footer">Guia Brechó • {prettyBaseUrl}</footer>
     </main>
   );
 }

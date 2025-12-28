@@ -15,7 +15,7 @@ const body = Lexend({
 
 export const metadata: Metadata = {
   title: "Guia Brechó",
-  description: "Descubra brechós, salve favoritos e compartilhe achados com facilidade.",
+  description: "Guia Brechó. Descubra brechós com calma.",
   appLinks: {
     ios: {
       url: webBaseUrl,
