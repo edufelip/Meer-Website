@@ -156,8 +156,6 @@ a {
   font-size: 15px;
 }
 
-<<<<<<< HEAD
-=======
 .redirect-card {
   border-style: dashed;
   background: rgba(255, 255, 255, 0.9);
@@ -174,8 +172,6 @@ a {
   flex-wrap: wrap;
   gap: 12px;
 }
-
->>>>>>> 39403bcdd1b5a66f567a7b1ac9901cae88ef4126
 button.button {
   border: 1px solid transparent;
   cursor: pointer;
