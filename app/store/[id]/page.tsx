@@ -1,14 +1,26 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { selectApiBase } from "../../../src/apiBase";
 import { webBaseUrl } from "../../../src/urls";
 import OpenInAppButton from "../../../src/OpenInAppButton";
 
 type StorePageProps = {
   params: { id: string };
 };
-...
+
+export function generateMetadata({ params }: StorePageProps): Metadata {
+  const storeId = decodeURIComponent(params.id);
+  return {
+    title: `Guia Brechó - Loja ${storeId}`,
+    description: "Abra o Guia Brechó para ver esta loja."
+  };
+}
+
+export default function StorePage({ params }: StorePageProps) {
+  const storeId = decodeURIComponent(params.id);
+  const encodedId = encodeURIComponent(storeId);
+  const storeName = storeId;
+  const prettyBaseUrl = webBaseUrl.replace(/^https?:\/\//, "");
+
   return (
     <main className="page">
       <section className="hero">
