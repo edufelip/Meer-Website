@@ -156,6 +156,26 @@ a {
   font-size: 15px;
 }
 
+<<<<<<< HEAD
+=======
+.redirect-card {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.redirect-note {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.redirect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+>>>>>>> 39403bcdd1b5a66f567a7b1ac9901cae88ef4126
 button.button {
   border: 1px solid transparent;
   cursor: pointer;
@@ -166,6 +186,8 @@ button.button {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  width: 100%;
+  max-width: 50%;
 }
 
 .form-field {
@@ -285,5 +307,9 @@ button.button {
   .toggle {
     width: 100%;
     text-align: center;
+  }
+
+  .form-card {
+    max-width: 100%;
   }
 }

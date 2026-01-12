@@ -10,9 +10,13 @@ type ContentPageProps = {
   return (
     <main className="page">
       <section className="hero">
+<<<<<<< HEAD
         <span className="eyebrow">Conteúdo</span>
         <h1>{contentId}</h1>
         <p>Esse link abre direto no app. Caso não tenha o app instalado, você será redirecionado para a loja.</p>
+=======
+        <p>Este link abre direto no app. Se ele não abrir, use o botão abaixo.</p>
+>>>>>>> 39403bcdd1b5a66f567a7b1ac9901cae88ef4126
         <div className="hero-actions">
           <OpenInAppButton className="button" deepLink={`meer://content/${encodedId}`}>
             Abrir no app
