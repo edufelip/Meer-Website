@@ -1,36 +1,24 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { selectApiBase } from "../../../src/apiBase";
 import { webBaseUrl } from "../../../src/urls";
-import StoreRedirect from "./StoreRedirect";
+import OpenInAppButton from "../../../src/OpenInAppButton";
 
 type StorePageProps = {
   params: { id: string };
 };
-
-export function generateMetadata({ params }: StorePageProps): Metadata {
-  const storeId = decodeURIComponent(params.id);
-  return {
-    title: `Guia Brechó - ${storeId}`,
-    description: "Abra o Guia Brechó para ver detalhes desta loja."
-  };
-}
-
-export default function StorePage({ params }: StorePageProps) {
-  const storeId = decodeURIComponent(params.id);
-  const encodedId = encodeURIComponent(storeId);
-  const prettyBaseUrl = webBaseUrl.replace(/^https?:\/\//, "");
-
+...
   return (
     <main className="page">
-      <StoreRedirect />
       <section className="hero">
         <span className="eyebrow">Loja</span>
-        <h1>{storeId}</h1>
-        <p>Este link abre direto no app. Se ele nao abrir, use o botao abaixo.</p>
+        <h1>{storeName}</h1>
+        <p>Esse link abre direto no app. Caso não tenha o app instalado, você será redirecionado para a loja.</p>
         <div className="hero-actions">
-          <a className="button" href={`meer://store/${encodedId}`}>
+          <OpenInAppButton className="button" deepLink={`meer://store/${encodedId}`}>
             Abrir no app
-          </a>
+          </OpenInAppButton>
           <Link className="button secondary" href="/">
             Voltar para o inicio
           </Link>
