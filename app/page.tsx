@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { androidStoreUrl, iosStoreUrl } from "../src/urls";
 
 const brandName = "Guia Brechó"; // TODO: replace with final brand name.
@@ -21,7 +22,7 @@ export default function HomePage() {
             height={64}
             priority
           />
-          <h1 className="m-0 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl" style={{marginTop: '8px', marginBottom: '0px'}}>
+          <h1 className="m-0 mt-2 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
             {brandName}
           </h1>
           <p className="text-sm text-neutral-500 sm:text-base sm:whitespace-nowrap m-0">
@@ -62,6 +63,12 @@ export default function HomePage() {
               priority
             />
           </a>
+        </div>
+
+        <div className="mt-6">
+          <Link href="/privacy-policy" className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors">
+            Privacy Policy
+          </Link>
         </div>
       </section>
     </main>
