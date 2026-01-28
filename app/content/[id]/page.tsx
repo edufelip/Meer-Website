@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { webBaseUrl } from "../../../src/urls";
 import OpenInAppButton from "../../../src/OpenInAppButton";
-import ContentRedirect from "./ContentRedirect";
+import AutoOpenInApp from "../../../src/AutoOpenInApp";
 
 type ContentPageProps = {
   params: { id: string };
@@ -19,17 +19,17 @@ export function generateMetadata({ params }: ContentPageProps): Metadata {
 export default function ContentPage({ params }: ContentPageProps) {
   const contentId = decodeURIComponent(params.id);
   const encodedId = encodeURIComponent(contentId);
+  const deepLink = `meer://content/${encodedId}`;
   const prettyBaseUrl = webBaseUrl.replace(/^https?:\/\//, "");
 
   return (
     <main className="page">
-      <ContentRedirect />
+      <AutoOpenInApp deepLink={deepLink} />
       <section className="hero">
         <span className="eyebrow">Conteúdo</span>
-        <h1>{contentId}</h1>
         <p>Este link abre direto no app. Se ele não abrir, use o botão abaixo.</p>
         <div className="hero-actions">
-          <OpenInAppButton className="button" deepLink={`meer://content/${encodedId}`}>
+          <OpenInAppButton className="button" deepLink={deepLink}>
             Abrir no app
           </OpenInAppButton>
           <Link className="button secondary" href="/">
