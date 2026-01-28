@@ -15,13 +15,14 @@ export function generateMetadata({ params }: StorePageProps): Metadata {
 }
 
 export default function StorePage({ params }: StorePageProps) {
-  const storeId = decodeURIComponent(params.id);
-  const encodedId = encodeURIComponent(storeId);
+  const encodedId = encodeURIComponent(decodeURIComponent(params.id));
   const prettyBaseUrl = webBaseUrl.replace(/^https?:\/\//, "");
 
   return (
     <main className="page">
       <section className="hero">
+        <span className="eyebrow">Loja</span>
+        <h1>Abra a loja no app.</h1>
         <p>Esse link abre direto no app. Caso não tenha o app instalado, você será redirecionado para a loja.</p>
         <div className="hero-actions">
           <OpenInAppButton className="button" deepLink={`meer://store/${encodedId}`}>
