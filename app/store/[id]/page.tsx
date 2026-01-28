@@ -8,9 +8,8 @@ type StorePageProps = {
 };
 
 export function generateMetadata({ params }: StorePageProps): Metadata {
-  const storeId = decodeURIComponent(params.id);
   return {
-    title: `Guia Brechó - Loja ${storeId}`,
+    title: "Guia Brechó - Loja",
     description: "Abra o Guia Brechó para ver esta loja."
   };
 }
@@ -18,14 +17,11 @@ export function generateMetadata({ params }: StorePageProps): Metadata {
 export default function StorePage({ params }: StorePageProps) {
   const storeId = decodeURIComponent(params.id);
   const encodedId = encodeURIComponent(storeId);
-  const storeName = storeId;
   const prettyBaseUrl = webBaseUrl.replace(/^https?:\/\//, "");
 
   return (
     <main className="page">
       <section className="hero">
-        <span className="eyebrow">Loja</span>
-        <h1>{storeName}</h1>
         <p>Esse link abre direto no app. Caso não tenha o app instalado, você será redirecionado para a loja.</p>
         <div className="hero-actions">
           <OpenInAppButton className="button" deepLink={`meer://store/${encodedId}`}>
