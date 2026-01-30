@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { passwordRules, validatePassword } from "../../../../src/shared/validation/password";
 import { selectApiBase } from "../../../src/apiBase";
-import { getPasswordRulesLabels } from "./passwordRulesText";
+import { getPasswordRuleErrorMessage, getPasswordRulesLabels } from "./passwordRulesText";
 
 type ResetPasswordFormProps = {
   token: string;
@@ -43,7 +43,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
-      setError(passwordValidation.error ?? "Senha invalida.");
+      setError(getPasswordRuleErrorMessage(passwordValidation.errorKey) ?? "Senha invalida.");
       return;
     }
 

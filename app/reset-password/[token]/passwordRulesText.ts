@@ -19,3 +19,9 @@ const getTranslation = (key: string): string => {
 export function getPasswordRulesLabels(): string[] {
   return passwordRules.map((rule) => getTranslation(rule.labelKey));
 }
+
+export function getPasswordRuleErrorMessage(errorKey?: string): string | null {
+  if (!errorKey) return null;
+  const message = getTranslation(errorKey);
+  return message === errorKey ? null : message;
+}
