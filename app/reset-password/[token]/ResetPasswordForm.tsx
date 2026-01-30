@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { passwordRules, validatePassword } from "../../../../src/shared/validation/password";
 import { selectApiBase } from "../../../src/apiBase";
+import { getPasswordRulesLabels } from "./passwordRulesText";
 
 type ResetPasswordFormProps = {
   token: string;
@@ -32,7 +33,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const [submitting, setSubmitting] = useState(false);
 
   const strength = useMemo(() => getStrength(password), [password]);
-  const rulesHint = `${passwordRules.map((rule) => rule.label).join(", ")}.`;
+  const rulesHint = `${getPasswordRulesLabels().join(", ")}.`;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

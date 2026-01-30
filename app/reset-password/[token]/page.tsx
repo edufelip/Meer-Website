@@ -1,6 +1,6 @@
-import { passwordRules } from "../../../../src/shared/validation/password";
 import ResetPasswordForm from "./ResetPasswordForm";
 import { webBaseUrl } from "../../../src/urls";
+import { getPasswordRulesLabels } from "./passwordRulesText";
 
 export default function ResetPasswordPage({
   params
@@ -9,7 +9,7 @@ export default function ResetPasswordPage({
 }) {
   const token = decodeURIComponent(params.token);
   const prettyBaseUrl = webBaseUrl.replace(/^https?:\/\//, "");
-  const rulesHint = passwordRules.map((rule) => rule.label).join(", ");
+  const rulesHint = getPasswordRulesLabels().join(", ");
 
   return (
     <main className="page">
