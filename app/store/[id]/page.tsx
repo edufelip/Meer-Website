@@ -8,7 +8,7 @@ type StorePageProps = {
   params: { id: string };
 };
 
-export function generateMetadata({ params }: StorePageProps): Metadata {
+export function generateMetadata(): Metadata {
   return {
     title: "Guia Brechó - Loja",
     description: "Abra o Guia Brechó para ver esta loja."
