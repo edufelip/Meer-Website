@@ -5,7 +5,6 @@ Track identified gaps, placeholders, and technical debts found in the codebase t
 
 ## Branding & Identity
 - [ ] **Brand Name**: Currently hardcoded as "Guia Brechó", but marked with `TODO: replace with final brand name` in `app/page.tsx`.
-- [ ] **Tagline**: Currently "Descubra brechós perto de você", but marked with `TODO: replace with final tagline` in `app/page.tsx`.
 - [ ] **Favicon**: No custom favicon or apple-touch-icon is currently present in the `app/` or `public/` directories.
 
 ## Functional Improvements
