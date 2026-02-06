@@ -171,7 +171,7 @@ export default function TermsEulaPage() {
   const [phase, setPhase] = useState<"in" | "out">("in");
   const [isAnimating, setIsAnimating] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const timeoutsRef = useRef<number[]>([]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -197,7 +197,7 @@ export default function TermsEulaPage() {
 
   useEffect(() => {
     return () => {
-      timeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      timeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
       timeoutsRef.current = [];
     };
   }, []);
@@ -213,7 +213,7 @@ export default function TermsEulaPage() {
       return;
     }
 
-    timeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+    timeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
     timeoutsRef.current = [];
 
     setIsAnimating(true);
