@@ -14,8 +14,29 @@ const body = Lexend({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(webBaseUrl),
   title: "Guia Brechó",
-  description: "Guia Brechó. Descubra brechós com calma.",
+  description: "Guia Brechó. Descubra brechós, conteúdos e dicas de consumo consciente.",
+  alternates: {
+    canonical: "/"
+  },
+  robots: {
+    index: true,
+    follow: true
+  },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: "/",
+    title: "Guia Brechó",
+    description: "Descubra brechós, conteúdos e dicas de consumo consciente.",
+    siteName: "Guia Brechó"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Guia Brechó",
+    description: "Descubra brechós, conteúdos e dicas de consumo consciente."
+  },
   appLinks: {
     ios: {
       url: webBaseUrl,

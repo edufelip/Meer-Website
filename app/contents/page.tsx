@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { Route } from "next";
 import { listSiteGuideContents, SiteContentsApiError } from "../../src/siteContents/api";
 import { formatDateShort } from "../../src/siteContents/format";
+import { buildContentsMetadata } from "../../src/siteContents/metadata";
 import { buildContentsHref, parseContentsQuery } from "../../src/siteContents/query";
 import type { GuideContentDto, PageResponse } from "../../src/siteContents/types";
 
@@ -10,10 +11,10 @@ type ContentsPageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
 };
 
-export const metadata: Metadata = {
-  title: "Guia Brechó - Conteúdos",
-  description: "Explore conteúdos, filtre por busca e navegue por páginas."
-};
+export function generateMetadata({ searchParams }: ContentsPageProps): Metadata {
+  const query = parseContentsQuery(searchParams);
+  return buildContentsMetadata(query);
+}
 
 function listErrorMessage(error: SiteContentsApiError): string {
   if (error.status === 400) {
@@ -164,6 +165,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
           {query.page > 0 ? (
             <Link
               className="button secondary"
+              rel="prev"
               href={buildContentsHref({
                 ...query,
                 page: query.page - 1
@@ -182,6 +184,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
           {response.hasNext ? (
             <Link
               className="button"
+              rel="next"
               href={buildContentsHref({
                 ...query,
                 page: query.page + 1

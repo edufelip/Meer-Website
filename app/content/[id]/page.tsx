@@ -7,6 +7,11 @@ import {
   SiteContentsApiError
 } from "../../../src/siteContents/api";
 import { formatDateTime } from "../../../src/siteContents/format";
+import {
+  buildContentDescription,
+  parseAbsoluteUrlOrUndefined,
+  parseIsoDateOrUndefined
+} from "../../../src/siteContents/metadata";
 import { parseCommentsPage } from "../../../src/siteContents/query";
 
 type ContentPageProps = {
@@ -68,20 +73,87 @@ function toApiError(error: unknown, fallbackMessage: string): SiteContentsApiErr
     : new SiteContentsApiError(500, fallbackMessage);
 }
 
+function metadataRobots(index: boolean): NonNullable<Metadata["robots"]> {
+  return {
+    index,
+    follow: true
+  };
+}
+
 function buildCommentsHref(contentId: number, commentsPage: number): Route {
   const params = new URLSearchParams();
   params.set("commentsPage", String(Math.max(0, commentsPage)));
   return `/content/${contentId}?${params.toString()}` as Route;
 }
 
-export function generateMetadata({ params }: ContentPageProps): Metadata {
-  const contentId = safeDecode(params.id);
-  const metadataId = contentId && contentId.trim() ? contentId : "inválido";
+export async function generateMetadata({ params, searchParams }: ContentPageProps): Promise<Metadata> {
+  const contentId = parseContentId(params.id);
+  const commentsPage = parseCommentsPage(searchParams);
+  const indexPage = commentsPage === 0;
 
-  return {
-    title: `Guia Brechó - Conteúdo ${metadataId}`,
-    description: "Veja detalhes do conteúdo e comentários da comunidade."
-  };
+  if (!contentId) {
+    return {
+      title: "Conteúdo inválido | Guia Brechó",
+      description: "O conteúdo solicitado não possui um identificador válido.",
+      alternates: {
+        canonical: "/contents"
+      },
+      robots: metadataRobots(false)
+    };
+  }
+
+  const canonicalPath = `/content/${contentId}`;
+
+  try {
+    const content = await getSiteGuideContentById(contentId, {
+      revalidate: CONTENTS_REVALIDATE_SECONDS
+    });
+
+    const title = `${content.title} | Guia Brechó`;
+    const description = buildContentDescription(content.description);
+    const publishedTime = parseIsoDateOrUndefined(content.createdAt);
+    const imageUrl = parseAbsoluteUrlOrUndefined(content.imageUrl);
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: canonicalPath
+      },
+      robots: metadataRobots(indexPage),
+      openGraph: {
+        type: "article",
+        locale: "pt_BR",
+        url: canonicalPath,
+        title,
+        description,
+        siteName: "Guia Brechó",
+        publishedTime,
+        images: imageUrl ? [{ url: imageUrl, alt: `Imagem do conteúdo ${content.title}` }] : undefined
+      },
+      twitter: {
+        card: imageUrl ? "summary_large_image" : "summary",
+        title,
+        description,
+        images: imageUrl ? [imageUrl] : undefined
+      }
+    };
+  } catch (error) {
+    const apiError = toApiError(error, "Não foi possível carregar este conteúdo.");
+
+    return {
+      title: apiError.status === 404
+        ? "Conteúdo não encontrado | Guia Brechó"
+        : "Conteúdo | Guia Brechó",
+      description: apiError.status === 404
+        ? "Este conteúdo não foi encontrado ou pode ter sido removido."
+        : "Veja conteúdo da comunidade no Guia Brechó.",
+      alternates: {
+        canonical: canonicalPath
+      },
+      robots: metadataRobots(false)
+    };
+  }
 }
 
 export default async function ContentPage({ params, searchParams }: ContentPageProps) {

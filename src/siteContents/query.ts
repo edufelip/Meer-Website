@@ -3,7 +3,7 @@ import type { ContentSort } from "./types";
 
 type QueryValue = string | string[] | undefined;
 
-type ContentsQuery = {
+export type ContentsQuery = {
   page: number;
   pageSize: number;
   q: string;
