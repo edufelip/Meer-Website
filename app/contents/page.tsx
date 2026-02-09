@@ -63,7 +63,8 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
       pageSize: query.pageSize,
       q: query.q,
       sort: query.sort,
-      storeId: query.storeId
+      storeId: query.storeId,
+      revalidate: 120
     });
   } catch (err) {
     if (err instanceof SiteContentsApiError) {

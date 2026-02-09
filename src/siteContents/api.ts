@@ -34,15 +34,6 @@ type ApiErrorPayload = {
   message?: unknown;
 };
 
-type SiteApiLogMeta = {
-  path: string;
-  url: string;
-  status?: number;
-  durationMs: number;
-  errorMessage?: string;
-  curl: string;
-};
-
 export class SiteContentsApiError extends Error {
   readonly status: number;
 
@@ -51,43 +42,6 @@ export class SiteContentsApiError extends Error {
     this.name = "SiteContentsApiError";
     this.status = status;
   }
-}
-
-function logSiteApi(event: "request_ok" | "request_error", meta: SiteApiLogMeta) {
-  const prefix = `[site-api] ${event}`;
-  const base = `${prefix} path=${meta.path} status=${meta.status ?? "-"} durationMs=${meta.durationMs}`;
-
-  if (event === "request_error") {
-    console.error(`${base} url=${meta.url} message=${meta.errorMessage ?? "-"}`);
-    console.error(`[site-api] curl ${meta.curl}`);
-    return;
-  }
-
-  console.info(`${base} url=${meta.url}`);
-  console.info(`[site-api] curl ${meta.curl}`);
-}
-
-function shellEscape(value: string): string {
-  return `'${value.replace(/'/g, `'\"'\"'`)}'`;
-}
-
-function redactedHeaderValue(name: string, value: string): string {
-  if (name.toLowerCase() === "authorization") {
-    return "Bearer <redacted>";
-  }
-  return value;
-}
-
-function buildCurl(url: string, headers: HeadersInit): string {
-  const parts = ["curl", "-X", "GET", shellEscape(url)];
-  const entries = Object.entries(headers);
-
-  for (const [key, rawValue] of entries) {
-    const value = Array.isArray(rawValue) ? rawValue.join(",") : String(rawValue);
-    parts.push("-H", shellEscape(`${key}: ${redactedHeaderValue(key, value)}`));
-  }
-
-  return parts.join(" ");
 }
 
 function sanitizePage(value: number | undefined): number {
@@ -139,56 +93,30 @@ async function requestJson<T>(path: string, searchParams: URLSearchParams, optio
   const baseUrl = selectApiBase().replace(/\/+$/, "");
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = new URL(`${baseUrl}${normalizedPath}`);
-  const startedAt = Date.now();
 
   if (searchParams.toString()) {
     url.search = searchParams.toString();
   }
 
-  const headers = buildHeaders(options?.token);
-  const curl = buildCurl(url.toString(), headers);
-  const response = await fetch(url.toString(), {
+  const requestOptions: RequestInit & { next?: { revalidate: number } } = {
     method: "GET",
-    headers,
-    cache:
-      typeof options?.revalidate === "number"
-        ? options?.cache
-        : (options?.cache ?? "no-store"),
-    ...(typeof options?.revalidate === "number" ? { next: { revalidate: options.revalidate } } : {})
-  });
+    headers: buildHeaders(options?.token)
+  };
 
-  if (!response.ok) {
-    let parsedError: SiteContentsApiError | null = null;
-
-    try {
-      await parseError(response);
-    } catch (error) {
-      parsedError = error instanceof SiteContentsApiError
-        ? error
-        : new SiteContentsApiError(response.status, "Falha ao carregar dados.");
-    }
-
-    const finalError = parsedError ?? new SiteContentsApiError(response.status, "Falha ao carregar dados.");
-
-    logSiteApi("request_error", {
-      path: normalizedPath,
-      url: url.toString(),
-      status: response.status,
-      durationMs: Date.now() - startedAt,
-      errorMessage: finalError.message,
-      curl
-    });
-
-    throw finalError;
+  if (options?.cache) {
+    requestOptions.cache = options.cache;
   }
 
-  logSiteApi("request_ok", {
-    path: normalizedPath,
-    url: url.toString(),
-    status: response.status,
-    durationMs: Date.now() - startedAt,
-    curl
-  });
+  if (typeof options?.revalidate === "number") {
+    requestOptions.next = { revalidate: options.revalidate };
+    requestOptions.cache = options?.cache ?? "force-cache";
+  }
+
+  const response = await fetch(url.toString(), requestOptions);
+
+  if (!response.ok) {
+    await parseError(response);
+  }
 
   return (await response.json()) as T;
 }
@@ -222,7 +150,9 @@ export async function getSiteGuideContentById(
   options?: RequestOptions
 ): Promise<GuideContentDto> {
   return requestJson<GuideContentDto>(`/site/contents/${id}`, new URLSearchParams(), {
-    token: options?.token
+    token: options?.token,
+    cache: options?.cache,
+    revalidate: options?.revalidate
   });
 }
 
