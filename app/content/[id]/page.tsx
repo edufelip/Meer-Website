@@ -1,6 +1,7 @@
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import OpenInAppButton from "../../../src/OpenInAppButton";
+import JsonLdScript from "../../../src/seo/JsonLdScript";
 import {
   getSiteGuideContentById,
   listSiteGuideContentComments,
@@ -13,6 +14,7 @@ import {
   parseIsoDateOrUndefined
 } from "../../../src/siteContents/metadata";
 import { parseCommentsPage } from "../../../src/siteContents/query";
+import { buildContentArticleJsonLd, buildContentBreadcrumbJsonLd } from "../../../src/siteContents/structuredData";
 
 type ContentPageProps = {
   params: { id: string };
@@ -222,6 +224,15 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
 
   return (
     <main className="page contents-page">
+      <JsonLdScript
+        id="content-breadcrumb-jsonld"
+        data={buildContentBreadcrumbJsonLd(content)}
+      />
+      <JsonLdScript
+        id="content-article-jsonld"
+        data={buildContentArticleJsonLd(content)}
+      />
+
       <section className="hero content-detail-hero">
         <span className="eyebrow">Conteúdo</span>
         <h1>{content.title}</h1>

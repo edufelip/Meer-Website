@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { Route } from "next";
+import JsonLdScript from "../../src/seo/JsonLdScript";
 import { listSiteGuideContents, SiteContentsApiError } from "../../src/siteContents/api";
 import { formatDateShort } from "../../src/siteContents/format";
 import { buildContentsMetadata } from "../../src/siteContents/metadata";
 import { buildContentsHref, parseContentsQuery } from "../../src/siteContents/query";
+import { buildContentsBreadcrumbJsonLd, buildContentsItemListJsonLd } from "../../src/siteContents/structuredData";
 import type { GuideContentDto, PageResponse } from "../../src/siteContents/types";
 
 type ContentsPageProps = {
@@ -53,6 +55,17 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
 
   return (
     <main className="page contents-page">
+      <JsonLdScript
+        id="contents-breadcrumb-jsonld"
+        data={buildContentsBreadcrumbJsonLd()}
+      />
+      {response && response.items.length > 0 ? (
+        <JsonLdScript
+          id="contents-item-list-jsonld"
+          data={buildContentsItemListJsonLd(response, query)}
+        />
+      ) : null}
+
       <section className="hero">
         <span className="eyebrow">Conteúdos</span>
         <h1>Explore dicas e achados da comunidade.</h1>
