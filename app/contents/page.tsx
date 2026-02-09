@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { Route } from "next";
@@ -143,17 +144,18 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
         <section className="contents-grid" aria-label="Lista de conteúdos">
           {response.items.map((item) => (
             <article key={item.id} className="card content-card">
-              <Link className="content-card-link" href={`/content/${item.id}` as Route}>
-                <div className="content-card-image-wrap">
-                  {item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.imageUrl}
-                      alt={`Imagem do conteúdo ${item.title}`}
-                      className="content-card-image"
-                      loading="lazy"
-                    />
-                  ) : (
+                <Link className="content-card-link" href={`/content/${item.id}` as Route}>
+                  <div className="content-card-image-wrap relative">
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt={`Imagem do conteúdo ${item.title}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1080px) 50vw, 33vw"
+                        className="content-card-image"
+                        loading="lazy"
+                      />
+                    ) : (
                     <div className="content-card-image content-card-image-fallback">Sem imagem</div>
                   )}
                 </div>

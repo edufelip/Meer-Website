@@ -424,11 +424,18 @@ button.button {
   max-width: 860px;
 }
 
-.content-detail-image {
+.content-detail-image-wrap {
+  position: relative;
   width: 100%;
+  aspect-ratio: 16 / 9;
   max-height: 420px;
-  object-fit: cover;
+  overflow: hidden;
   border-radius: 16px;
+  background: #fdf2e8;
+}
+
+.content-detail-image {
+  object-fit: cover;
 }
 
 .content-detail-meta {

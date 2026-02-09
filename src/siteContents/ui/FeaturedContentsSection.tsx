@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import { formatDateShort } from "../format";
@@ -43,12 +44,13 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
                 className="group rounded-2xl border border-amber-100 bg-white shadow-[0_14px_28px_rgba(148,96,20,0.12)]"
               >
                 <Link href={`/content/${content.id}` as Route} className="block h-full">
-                  <div className="h-40 w-full overflow-hidden rounded-t-2xl bg-amber-50">
+                  <div className="relative h-40 w-full overflow-hidden rounded-t-2xl bg-amber-50">
                     {content.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={content.imageUrl}
                         alt={`Imagem de ${content.title}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                         loading="lazy"
                       />

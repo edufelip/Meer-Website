@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import OpenInAppButton from "../../../src/OpenInAppButton";
@@ -285,12 +286,16 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
 
       <section className="card content-detail-card">
         {content.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={content.imageUrl}
-            alt={`Imagem do conteúdo ${content.title}`}
-            className="content-detail-image"
-          />
+          <div className="content-detail-image-wrap">
+            <Image
+              src={content.imageUrl}
+              alt={`Imagem do conteúdo ${content.title}`}
+              fill
+              sizes="(max-width: 860px) 100vw, 860px"
+              className="content-detail-image"
+              priority
+            />
+          </div>
         ) : null}
 
         <div className="content-detail-meta">
@@ -317,12 +322,13 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
             {relatedContents.map((item) => (
               <article key={item.id} className="card content-card">
                 <Link className="content-card-link" href={`/content/${item.id}` as Route}>
-                  <div className="content-card-image-wrap">
+                  <div className="content-card-image-wrap relative">
                     {item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={item.imageUrl}
                         alt={`Imagem do conteúdo ${item.title}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1080px) 50vw, 33vw"
                         className="content-card-image"
                         loading="lazy"
                       />

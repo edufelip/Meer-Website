@@ -4,6 +4,14 @@ const nextConfig = {
     typedRoutes: true,
     externalDir: true
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com"
+      }
+    ]
+  },
   async headers() {
     return [
       {
