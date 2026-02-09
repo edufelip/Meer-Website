@@ -37,6 +37,9 @@ export const metadata: Metadata = {
     title: "Guia Brechó",
     description: "Descubra brechós, conteúdos e dicas de consumo consciente."
   },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION
+  },
   appLinks: {
     ios: {
       url: webBaseUrl,
