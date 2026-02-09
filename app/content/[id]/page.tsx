@@ -1,55 +1,243 @@
+import type { Metadata, Route } from "next";
 import Link from "next/link";
-import type { Metadata } from "next";
-import { webBaseUrl } from "../../../src/urls";
 import OpenInAppButton from "../../../src/OpenInAppButton";
-import AutoOpenInApp from "../../../src/AutoOpenInApp";
+import {
+  getSiteGuideContentById,
+  listSiteGuideContentComments,
+  SiteContentsApiError
+} from "../../../src/siteContents/api";
+import { parseCommentsPage } from "../../../src/siteContents/query";
 
 type ContentPageProps = {
   params: { id: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 };
+
+const COMMENTS_PAGE_SIZE = 10;
+
+function parseContentId(rawId: string): number | null {
+  const parsed = Number.parseInt(decodeURIComponent(rawId), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Data indisponível";
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function contentErrorMessage(error: SiteContentsApiError): string {
+  if (error.status === 404) {
+    return "Este conteúdo não foi encontrado. Ele pode ter sido removido.";
+  }
+
+  if (error.status === 400) {
+    return "O identificador informado é inválido.";
+  }
+
+  if (error.status === 401) {
+    return "A API deste conteúdo ainda está protegida (401). O backend precisa liberar leitura pública para o site.";
+  }
+
+  return error.message || "Não foi possível carregar o conteúdo.";
+}
+
+function commentsErrorMessage(error: SiteContentsApiError): string {
+  if (error.status === 400) {
+    return "A paginação de comentários está inválida.";
+  }
+
+  if (error.status === 401) {
+    return "A API de comentários ainda está protegida (401).";
+  }
+
+  return error.message || "Não foi possível carregar os comentários.";
+}
+
+function buildCommentsHref(contentId: number, commentsPage: number): Route {
+  const params = new URLSearchParams();
+  params.set("commentsPage", String(Math.max(0, commentsPage)));
+  return `/content/${contentId}?${params.toString()}` as Route;
+}
 
 export function generateMetadata({ params }: ContentPageProps): Metadata {
   const contentId = decodeURIComponent(params.id);
+
   return {
     title: `Guia Brechó - Conteúdo ${contentId}`,
-    description: "Abra o Guia Brechó para ver este conteúdo."
+    description: "Veja detalhes do conteúdo e comentários da comunidade."
   };
 }
 
-export default function ContentPage({ params }: ContentPageProps) {
-  const contentId = decodeURIComponent(params.id);
-  const encodedId = encodeURIComponent(contentId);
-  const deepLink = `meer://content/${encodedId}`;
-  const prettyBaseUrl = webBaseUrl.replace(/^https?:\/\//, "");
+export default async function ContentPage({ params, searchParams }: ContentPageProps) {
+  const contentId = parseContentId(params.id);
+  const commentsPage = parseCommentsPage(searchParams);
+
+  if (!contentId) {
+    return (
+      <main className="page contents-page">
+        <section className="hero">
+          <span className="eyebrow">Conteúdo</span>
+          <h1>Conteúdo inválido.</h1>
+          <p>O identificador informado não é numérico.</p>
+          <div className="hero-actions">
+            <Link className="button" href="/contents">
+              Voltar para conteúdos
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  const deepLink = `meer://content/${encodeURIComponent(String(contentId))}`;
+
+  let content: Awaited<ReturnType<typeof getSiteGuideContentById>> | null = null;
+  let contentError: SiteContentsApiError | null = null;
+
+  try {
+    content = await getSiteGuideContentById(contentId);
+  } catch (err) {
+    if (err instanceof SiteContentsApiError) {
+      contentError = err;
+    } else {
+      contentError = new SiteContentsApiError(500, "Falha ao carregar conteúdo.");
+    }
+  }
+
+  if (!content || contentError) {
+    const message = contentError ? contentErrorMessage(contentError) : "Falha ao carregar conteúdo.";
+
+    return (
+      <main className="page contents-page">
+        <section className="hero">
+          <span className="eyebrow">Conteúdo</span>
+          <h1>Não foi possível abrir este conteúdo.</h1>
+          <p>{message}</p>
+          <div className="hero-actions">
+            <Link className="button" href="/contents">
+              Voltar para conteúdos
+            </Link>
+            <OpenInAppButton className="button secondary" deepLink={deepLink}>
+              Abrir no app
+            </OpenInAppButton>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  let comments: Awaited<ReturnType<typeof listSiteGuideContentComments>> | null = null;
+  let commentsError: SiteContentsApiError | null = null;
+
+  try {
+    comments = await listSiteGuideContentComments(content.id, {
+      page: commentsPage,
+      pageSize: COMMENTS_PAGE_SIZE
+    });
+  } catch (err) {
+    if (err instanceof SiteContentsApiError) {
+      commentsError = err;
+    } else {
+      commentsError = new SiteContentsApiError(500, "Falha ao carregar comentários.");
+    }
+  }
 
   return (
-    <main className="page">
-      <AutoOpenInApp deepLink={deepLink} />
-      <section className="hero">
+    <main className="page contents-page">
+      <section className="hero content-detail-hero">
         <span className="eyebrow">Conteúdo</span>
-        <p>Este link abre direto no app. Se ele não abrir, use o botão abaixo.</p>
+        <h1>{content.title}</h1>
+        <p>{content.description}</p>
         <div className="hero-actions">
           <OpenInAppButton className="button" deepLink={deepLink}>
             Abrir no app
           </OpenInAppButton>
-          <Link className="button secondary" href="/">
-            Voltar para o inicio
+          <Link className="button secondary" href="/contents">
+            Ver mais conteúdos
           </Link>
         </div>
       </section>
 
-      <section className="cards">
-        <div className="card">
-          <h3>Explore mais</h3>
-          <p>Descubra dicas e tendencias dos brechos da sua cidade.</p>
-        </div>
-        <div className="card">
-          <h3>Compartilhe</h3>
-          <p>Envie este conteudo para quem ama garimpar.</p>
+      <section className="card content-detail-card">
+        {content.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={content.imageUrl}
+            alt={`Imagem do conteúdo ${content.title}`}
+            className="content-detail-image"
+          />
+        ) : null}
+
+        <div className="content-detail-meta">
+          <p>
+            <strong>Loja:</strong> {content.thriftStoreName || "Comunidade"}
+          </p>
+          <p>
+            <strong>Publicado em:</strong> {formatDate(content.createdAt)}
+          </p>
+          <p>
+            <strong>Curtidas:</strong> {content.likeCount} • <strong>Comentários:</strong> {content.commentCount}
+          </p>
         </div>
       </section>
 
-      <footer className="footer">Guia Brechó • {prettyBaseUrl}</footer>
+      <section className="card comments-section">
+        <h2>Comentários</h2>
+
+        {commentsError ? <p className="form-error">{commentsErrorMessage(commentsError)}</p> : null}
+
+        {comments && comments.items.length === 0 ? <p>Nenhum comentário ainda.</p> : null}
+
+        {comments && comments.items.length > 0 ? (
+          <div className="comments-list">
+            {comments.items.map((comment) => (
+              <article key={comment.id} className="comment-item">
+                <header className="comment-header">
+                  <strong>{comment.userDisplayName || "Usuário"}</strong>
+                  <span>{formatDate(comment.createdAt)}</span>
+                </header>
+                <p>{comment.body}</p>
+                {comment.edited ? <small>Comentário editado</small> : null}
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        {comments ? (
+          <nav className="contents-pagination" aria-label="Paginação de comentários">
+            {comments.page > 0 ? (
+              <Link className="button secondary" href={buildCommentsHref(content.id, comments.page - 1)}>
+                Comentários anteriores
+              </Link>
+            ) : (
+              <span className="button secondary button-disabled" aria-disabled>
+                Comentários anteriores
+              </span>
+            )}
+
+            <p className="contents-pagination-label">Página {comments.page + 1}</p>
+
+            {comments.hasNext ? (
+              <Link className="button" href={buildCommentsHref(content.id, comments.page + 1)}>
+                Próximos comentários
+              </Link>
+            ) : (
+              <span className="button button-disabled" aria-disabled>
+                Próximos comentários
+              </span>
+            )}
+          </nav>
+        ) : null}
+      </section>
     </main>
   );
 }

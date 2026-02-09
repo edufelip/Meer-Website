@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Route } from "next";
 import { androidStoreUrl, iosStoreUrl } from "../src/urls";
+import { listSiteGuideContents, SiteContentsApiError } from "../src/siteContents/api";
+import type { GuideContentDto } from "../src/siteContents/types";
 
 const brandName = "Guia Brechó";
-const tagline = "Descubra brechós perto de você";
 
 const features = [
   {
@@ -27,7 +29,43 @@ const badgeLinkClasses =
   "inline-flex h-12 items-center justify-center transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:h-14";
 const badgeImageClasses = "h-full w-[132px] object-contain sm:w-[150px]";
 
-export default function HomePage() {
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Data indisponível";
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(date);
+}
+
+type FeaturedContentState =
+  | { items: GuideContentDto[]; blockedByAuth: false }
+  | { items: []; blockedByAuth: true };
+
+async function getFeaturedContents(): Promise<FeaturedContentState> {
+  try {
+    const response = await listSiteGuideContents({
+      page: 0,
+      pageSize: 8,
+      sort: "newest",
+      revalidate: 300
+    });
+
+    return { items: response.items, blockedByAuth: false };
+  } catch (error) {
+    if (error instanceof SiteContentsApiError && error.status === 401) {
+      return { items: [], blockedByAuth: true };
+    }
+
+    return { items: [], blockedByAuth: false };
+  }
+}
+
+export default async function HomePage() {
+  const featured = await getFeaturedContents();
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f7f4ef] text-neutral-900">
       <div className="pointer-events-none absolute inset-0">
@@ -121,8 +159,81 @@ export default function HomePage() {
           ))}
         </section>
 
+        <section className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] backdrop-blur md:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-neutral-500">
+                Conteúdos
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold leading-tight text-neutral-900">
+                Dicas fresquinhas para seu próximo garimpo.
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-600">
+                Veja publicações recentes da comunidade e descubra novos brechós e tendências.
+              </p>
+            </div>
+            <Link
+              href="/contents"
+              className="inline-flex w-fit items-center justify-center rounded-full border border-amber-300 bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-amber-600"
+            >
+              Load more
+            </Link>
+          </div>
+
+          {featured.items.length > 0 ? (
+            <div className="mt-6 pb-2">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {featured.items.map((content) => (
+                  <article
+                    key={content.id}
+                    className="group rounded-2xl border border-amber-100 bg-white shadow-[0_14px_28px_rgba(148,96,20,0.12)]"
+                  >
+                    <Link href={`/content/${content.id}` as Route} className="block h-full">
+                      <div className="h-40 w-full overflow-hidden rounded-t-2xl bg-amber-50">
+                        {content.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={content.imageUrl}
+                            alt={`Imagem de ${content.title}`}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-sm text-amber-700">
+                            Sem imagem
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex min-h-[180px] flex-col gap-2 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-amber-700">
+                          {content.thriftStoreName || "Comunidade"}
+                        </p>
+                        <h3 className="home-content-title text-neutral-900">
+                          {content.title}
+                        </h3>
+                        <p className="home-content-description">
+                          {content.description}
+                        </p>
+                        <p className="mt-auto text-xs text-neutral-500">
+                          {formatDate(content.createdAt)} • {content.commentCount} comentários
+                        </p>
+                      </div>
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm text-amber-900">
+              {featured.blockedByAuth
+                ? "A API de conteúdos ainda está protegida por autenticação (401). Assim que o backend liberar acesso público, esta seção será preenchida automaticamente."
+                : "Não foi possível carregar os conteúdos agora. Acesse a listagem completa para tentar novamente."}
+            </div>
+          )}
+        </section>
+
         <footer className="flex flex-col items-center gap-2 text-sm text-neutral-500 sm:flex-row sm:justify-between">
-          <p>{tagline}</p>
           <div className="flex items-center gap-4">
             <Link
               href="/privacy-policy"

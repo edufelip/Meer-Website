@@ -277,6 +277,230 @@ button.button {
   border: 1px solid #bbf7d0;
 }
 
+.contents-page {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+}
+
+.contents-filters {
+  width: 100%;
+}
+
+.contents-filter-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.contents-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  grid-column: 1 / -1;
+}
+
+.contents-state h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-display), "Segoe UI", sans-serif;
+  font-size: 22px;
+}
+
+.contents-state p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.contents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.content-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.content-card-link {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.content-card-image-wrap {
+  height: 180px;
+  overflow: hidden;
+  background: #fdf2e8;
+}
+
+.content-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.content-card-image-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #92400e;
+  font-size: 14px;
+}
+
+.content-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  flex: 1;
+}
+
+.content-card-store {
+  margin: 0;
+  color: #92400e;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.content-card-body h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.content-card-body p {
+  margin: 0;
+}
+
+.content-card-body > p:nth-of-type(2) {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.content-card-meta {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.contents-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.contents-pagination-label {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.button-disabled {
+  opacity: 0.56;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.content-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.content-detail-hero {
+  max-width: 860px;
+}
+
+.content-detail-image {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.content-detail-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.content-detail-meta p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.comments-section h2 {
+  margin: 0 0 12px;
+  font-family: var(--font-display), "Segoe UI", sans-serif;
+}
+
+.comments-list {
+  display: grid;
+  gap: 12px;
+}
+
+.comment-item {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.comment-item p {
+  margin: 8px 0 6px;
+}
+
+.comment-item small {
+  color: #9ca3af;
+}
+
+.home-content-title {
+  font-size: 18px;
+  line-height: 1.35;
+  margin: 0;
+  padding-bottom: 2px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.home-content-description {
+  margin: 0;
+  font-size: 14px;
+  color: #52525b;
+  line-height: 1.5;
+  padding-bottom: 2px;
+  display: -webkit-box;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .footer {
   margin-top: auto;
   font-size: 13px;
@@ -306,5 +530,19 @@ button.button {
 
   .form-card {
     max-width: 100%;
+  }
+
+  .contents-filter-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .contents-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .contents-pagination-label {
+    text-align: center;
   }
 }
