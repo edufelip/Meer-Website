@@ -13,6 +13,8 @@ Roll out SEO changes safely and verify indexing/canonical behavior for:
 - Google Search Console access to the domain property.
 - Optional env var for meta verification:
   - `GOOGLE_SITE_VERIFICATION=<token>`
+- If `/site/contents*` still requires auth in backend, set a server-only token:
+  - `SITE_CONTENTS_API_TOKEN=<bearer-token>`
 
 ## Automated Pre-Check
 
