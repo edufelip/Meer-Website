@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { Route } from "next";
 import { listSiteGuideContents, SiteContentsApiError } from "../../src/siteContents/api";
 import { buildContentsHref, parseContentsQuery } from "../../src/siteContents/query";
+import type { GuideContentDto, PageResponse } from "../../src/siteContents/types";
 
 type ContentsPageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -39,22 +40,7 @@ function listErrorMessage(error: SiteContentsApiError): string {
 export default async function ContentsPage({ searchParams }: ContentsPageProps) {
   const query = parseContentsQuery(searchParams);
 
-  let response:
-    | {
-        items: {
-          id: number;
-          title: string;
-          description: string;
-          imageUrl: string;
-          thriftStoreName: string;
-          createdAt: string;
-          likeCount: number;
-          commentCount: number;
-        }[];
-        page: number;
-        hasNext: boolean;
-      }
-    | null = null;
+  let response: PageResponse<GuideContentDto> | null = null;
   let error: SiteContentsApiError | null = null;
 
   try {
