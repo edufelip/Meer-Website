@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect, redirect } from "next/navigation";
 
 type LegacyContentDetailPageProps = {
   params: { id: string };
@@ -35,5 +35,5 @@ export default function LegacyContentDetailPage({ params, searchParams }: Legacy
   }
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  redirect(`/content/${targetId}${suffix}`);
+  permanentRedirect(`/content/${targetId}${suffix}`);
 }
