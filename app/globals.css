@@ -441,6 +441,20 @@ button.button {
   color: var(--ink-soft);
 }
 
+.related-contents-section h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-display), "Segoe UI", sans-serif;
+}
+
+.related-contents-section > p {
+  margin: 0 0 16px;
+  color: var(--ink-soft);
+}
+
+.related-contents-grid {
+  margin-top: 0;
+}
+
 .comments-section h2 {
   margin: 0 0 12px;
   font-family: var(--font-display), "Segoe UI", sans-serif;

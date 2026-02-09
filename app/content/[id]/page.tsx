@@ -4,16 +4,18 @@ import OpenInAppButton from "../../../src/OpenInAppButton";
 import JsonLdScript from "../../../src/seo/JsonLdScript";
 import {
   getSiteGuideContentById,
+  listSiteGuideContents,
   listSiteGuideContentComments,
   SiteContentsApiError
 } from "../../../src/siteContents/api";
-import { formatDateTime } from "../../../src/siteContents/format";
+import { formatDateShort, formatDateTime } from "../../../src/siteContents/format";
 import {
   buildContentDescription,
   parseAbsoluteUrlOrUndefined,
   parseIsoDateOrUndefined
 } from "../../../src/siteContents/metadata";
 import { parseCommentsPage } from "../../../src/siteContents/query";
+import { selectRelatedContents } from "../../../src/siteContents/related";
 import { buildContentArticleJsonLd, buildContentBreadcrumbJsonLd } from "../../../src/siteContents/structuredData";
 
 type ContentPageProps = {
@@ -23,6 +25,7 @@ type ContentPageProps = {
 
 const COMMENTS_PAGE_SIZE = 10;
 const CONTENTS_REVALIDATE_SECONDS = 120;
+const RELATED_CONTENTS_PAGE_SIZE = 8;
 
 function safeDecode(value: string): string | null {
   try {
@@ -181,11 +184,17 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
 
   const deepLink = `meer://content/${encodeURIComponent(String(contentId))}`;
 
-  const [contentResult, commentsResult] = await Promise.allSettled([
+  const [contentResult, commentsResult, fallbackRelatedResult] = await Promise.allSettled([
     getSiteGuideContentById(contentId, { revalidate: CONTENTS_REVALIDATE_SECONDS }),
     listSiteGuideContentComments(contentId, {
       page: commentsPage,
       pageSize: COMMENTS_PAGE_SIZE,
+      revalidate: CONTENTS_REVALIDATE_SECONDS
+    }),
+    listSiteGuideContents({
+      page: 0,
+      pageSize: RELATED_CONTENTS_PAGE_SIZE,
+      sort: "newest",
       revalidate: CONTENTS_REVALIDATE_SECONDS
     })
   ]);
@@ -221,6 +230,33 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
   const commentsError = commentsResult.status === "rejected"
     ? toApiError(commentsResult.reason, "Falha ao carregar comentários.")
     : null;
+  const fallbackRelatedContents = fallbackRelatedResult.status === "fulfilled"
+    ? fallbackRelatedResult.value.items
+    : [];
+
+  let preferredRelatedContents = fallbackRelatedContents;
+
+  if (content.thriftStoreId) {
+    try {
+      const storeRelated = await listSiteGuideContents({
+        page: 0,
+        pageSize: RELATED_CONTENTS_PAGE_SIZE,
+        sort: "newest",
+        storeId: content.thriftStoreId,
+        revalidate: CONTENTS_REVALIDATE_SECONDS
+      });
+
+      preferredRelatedContents = storeRelated.items;
+    } catch {
+      // Keep fallback-related list when store filtered fetch fails.
+    }
+  }
+
+  const relatedContents = selectRelatedContents({
+    currentContentId: content.id,
+    preferred: preferredRelatedContents,
+    fallback: fallbackRelatedContents
+  });
 
   return (
     <main className="page contents-page">
@@ -269,6 +305,46 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
           </p>
         </div>
       </section>
+
+      {relatedContents.length > 0 ? (
+        <section className="card related-contents-section">
+          <h2>Conteúdos relacionados</h2>
+          <p>
+            Continue explorando temas parecidos para aprofundar seu próximo garimpo.
+          </p>
+
+          <div className="contents-grid related-contents-grid" aria-label="Conteúdos relacionados">
+            {relatedContents.map((item) => (
+              <article key={item.id} className="card content-card">
+                <Link className="content-card-link" href={`/content/${item.id}` as Route}>
+                  <div className="content-card-image-wrap">
+                    {item.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.imageUrl}
+                        alt={`Imagem do conteúdo ${item.title}`}
+                        className="content-card-image"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="content-card-image content-card-image-fallback">Sem imagem</div>
+                    )}
+                  </div>
+                  <div className="content-card-body">
+                    <p className="content-card-store">{item.thriftStoreName || "Comunidade"}</p>
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                    <div className="content-card-meta">
+                      <span>{formatDateShort(item.createdAt)}</span>
+                      <span>{item.commentCount} comentários</span>
+                    </div>
+                  </div>
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="card comments-section">
         <h2>Comentários</h2>
