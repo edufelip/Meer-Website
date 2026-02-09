@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { androidStoreUrl, iosStoreUrl } from "../src/urls";
 import { listSiteGuideContents, SiteContentsApiError } from "../src/siteContents/api";
+import { getSiteContentsServerToken } from "../src/siteContents/serverAuth";
 import FeaturedContentsSection, {
   type FeaturedContentState
 } from "../src/siteContents/ui/FeaturedContentsSection";
@@ -31,11 +32,14 @@ const badgeLinkClasses =
 const badgeImageClasses = "h-full w-[132px] object-contain sm:w-[150px]";
 
 async function getFeaturedContents(): Promise<FeaturedContentState> {
+  const token = getSiteContentsServerToken();
+
   try {
     const response = await listSiteGuideContents({
       page: 0,
       pageSize: 8,
       sort: "newest",
+      token,
       revalidate: 300
     });
 

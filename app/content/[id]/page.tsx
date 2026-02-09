@@ -17,6 +17,7 @@ import {
 } from "../../../src/siteContents/metadata";
 import { parseCommentsPage } from "../../../src/siteContents/query";
 import { selectRelatedContents } from "../../../src/siteContents/related";
+import { getSiteContentsServerToken } from "../../../src/siteContents/serverAuth";
 import { buildContentArticleJsonLd, buildContentBreadcrumbJsonLd } from "../../../src/siteContents/structuredData";
 
 type ContentPageProps = {
@@ -96,6 +97,7 @@ export async function generateMetadata({ params, searchParams }: ContentPageProp
   const contentId = parseContentId(params.id);
   const commentsPage = parseCommentsPage(searchParams);
   const indexPage = commentsPage === 0;
+  const token = getSiteContentsServerToken();
 
   if (!contentId) {
     return {
@@ -112,6 +114,7 @@ export async function generateMetadata({ params, searchParams }: ContentPageProp
 
   try {
     const content = await getSiteGuideContentById(contentId, {
+      token,
       revalidate: CONTENTS_REVALIDATE_SECONDS
     });
 
@@ -165,6 +168,7 @@ export async function generateMetadata({ params, searchParams }: ContentPageProp
 export default async function ContentPage({ params, searchParams }: ContentPageProps) {
   const contentId = parseContentId(params.id);
   const commentsPage = parseCommentsPage(searchParams);
+  const token = getSiteContentsServerToken();
 
   if (!contentId) {
     return (
@@ -186,16 +190,21 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
   const deepLink = `meer://content/${encodeURIComponent(String(contentId))}`;
 
   const [contentResult, commentsResult, fallbackRelatedResult] = await Promise.allSettled([
-    getSiteGuideContentById(contentId, { revalidate: CONTENTS_REVALIDATE_SECONDS }),
+    getSiteGuideContentById(contentId, {
+      token,
+      revalidate: CONTENTS_REVALIDATE_SECONDS
+    }),
     listSiteGuideContentComments(contentId, {
       page: commentsPage,
       pageSize: COMMENTS_PAGE_SIZE,
+      token,
       revalidate: CONTENTS_REVALIDATE_SECONDS
     }),
     listSiteGuideContents({
       page: 0,
       pageSize: RELATED_CONTENTS_PAGE_SIZE,
       sort: "newest",
+      token,
       revalidate: CONTENTS_REVALIDATE_SECONDS
     })
   ]);
@@ -244,6 +253,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
         pageSize: RELATED_CONTENTS_PAGE_SIZE,
         sort: "newest",
         storeId: content.thriftStoreId,
+        token,
         revalidate: CONTENTS_REVALIDATE_SECONDS
       });
 

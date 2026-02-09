@@ -7,6 +7,7 @@ import { listSiteGuideContents, SiteContentsApiError } from "../../src/siteConte
 import { formatDateShort } from "../../src/siteContents/format";
 import { buildContentsMetadata } from "../../src/siteContents/metadata";
 import { buildContentsHref, parseContentsQuery } from "../../src/siteContents/query";
+import { getSiteContentsServerToken } from "../../src/siteContents/serverAuth";
 import { buildContentsBreadcrumbJsonLd, buildContentsItemListJsonLd } from "../../src/siteContents/structuredData";
 import type { GuideContentDto, PageResponse } from "../../src/siteContents/types";
 
@@ -33,6 +34,7 @@ function listErrorMessage(error: SiteContentsApiError): string {
 
 export default async function ContentsPage({ searchParams }: ContentsPageProps) {
   const query = parseContentsQuery(searchParams);
+  const token = getSiteContentsServerToken();
 
   let response: PageResponse<GuideContentDto> | null = null;
   let error: SiteContentsApiError | null = null;
@@ -44,6 +46,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
       q: query.q,
       sort: query.sort,
       storeId: query.storeId,
+      token,
       revalidate: 120
     });
   } catch (err) {

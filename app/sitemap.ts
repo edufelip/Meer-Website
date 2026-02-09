@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { listSiteGuideContents } from "../src/siteContents/api";
+import { getSiteContentsServerToken } from "../src/siteContents/serverAuth";
 import { webBaseUrl } from "../src/urls";
 
 const SITEMAP_PAGE_SIZE = 100;
@@ -19,6 +20,7 @@ function toValidDateOrUndefined(iso: string): Date | undefined {
 }
 
 async function getContentEntries(): Promise<MetadataRoute.Sitemap> {
+  const token = getSiteContentsServerToken();
   const entries: MetadataRoute.Sitemap = [];
   let page = 0;
   let hasNext = true;
@@ -28,6 +30,7 @@ async function getContentEntries(): Promise<MetadataRoute.Sitemap> {
       page,
       pageSize: SITEMAP_PAGE_SIZE,
       sort: "newest",
+      token,
       revalidate: sitemapRevalidateSeconds
     });
 
