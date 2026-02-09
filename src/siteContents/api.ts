@@ -44,6 +44,14 @@ export class SiteContentsApiError extends Error {
   }
 }
 
+export function extractApiErrorMessage(payload: ApiErrorPayload | null | undefined, fallback: string): string {
+  if (typeof payload?.message === "string" && payload.message.trim()) {
+    return payload.message.trim();
+  }
+
+  return fallback;
+}
+
 function sanitizePage(value: number | undefined): number {
   if (!Number.isFinite(value)) return DEFAULT_PAGE;
   return Math.max(DEFAULT_PAGE, Math.trunc(value ?? DEFAULT_PAGE));
@@ -75,13 +83,12 @@ function buildHeaders(token?: string | null): HeadersInit {
 }
 
 async function parseError(response: Response): Promise<never> {
-  let message = "Nao foi possivel carregar os conteudos.";
+  const fallbackMessage = "Nao foi possivel carregar os conteudos.";
+  let message = fallbackMessage;
 
   try {
     const payload = (await response.json()) as ApiErrorPayload;
-    if (typeof payload?.message === "string" && payload.message.trim()) {
-      message = payload.message.trim();
-    }
+    message = extractApiErrorMessage(payload, fallbackMessage);
   } catch {
     // Keep generic fallback for malformed/non-JSON responses.
   }
