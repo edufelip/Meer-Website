@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { Route } from "next";
 import { listSiteGuideContents, SiteContentsApiError } from "../../src/siteContents/api";
+import { formatDateShort } from "../../src/siteContents/format";
 import { buildContentsHref, parseContentsQuery } from "../../src/siteContents/query";
 import type { GuideContentDto, PageResponse } from "../../src/siteContents/types";
 
@@ -13,17 +14,6 @@ export const metadata: Metadata = {
   title: "Guia Brechó - Conteúdos",
   description: "Explore conteúdos, filtre por busca e navegue por páginas."
 };
-
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Data indisponível";
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  }).format(date);
-}
 
 function listErrorMessage(error: SiteContentsApiError): string {
   if (error.status === 400) {
@@ -158,7 +148,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
                   <h3>{item.title}</h3>
                   <p>{item.description}</p>
                   <div className="content-card-meta">
-                    <span>{formatDate(item.createdAt)}</span>
+                    <span>{formatDateShort(item.createdAt)}</span>
                     <span>{item.likeCount} curtidas</span>
                     <span>{item.commentCount} comentários</span>
                   </div>

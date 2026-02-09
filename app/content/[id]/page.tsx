@@ -6,6 +6,7 @@ import {
   listSiteGuideContentComments,
   SiteContentsApiError
 } from "../../../src/siteContents/api";
+import { formatDateTime } from "../../../src/siteContents/format";
 import { parseCommentsPage } from "../../../src/siteContents/query";
 
 type ContentPageProps = {
@@ -31,19 +32,6 @@ function parseContentId(rawId: string): number | null {
   const parsed = Number.parseInt(decoded, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return parsed;
-}
-
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Data indisponível";
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(date);
 }
 
 function contentErrorMessage(error: SiteContentsApiError): string {
@@ -191,7 +179,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
             <strong>Loja:</strong> {content.thriftStoreName || "Comunidade"}
           </p>
           <p>
-            <strong>Publicado em:</strong> {formatDate(content.createdAt)}
+            <strong>Publicado em:</strong> {formatDateTime(content.createdAt)}
           </p>
           <p>
             <strong>Curtidas:</strong> {content.likeCount} • <strong>Comentários:</strong> {content.commentCount}
@@ -212,7 +200,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
               <article key={comment.id} className="comment-item">
                 <header className="comment-header">
                   <strong>{comment.userDisplayName || "Usuário"}</strong>
-                  <span>{formatDate(comment.createdAt)}</span>
+                  <span>{formatDateTime(comment.createdAt)}</span>
                 </header>
                 <p>{comment.body}</p>
                 {comment.edited ? <small>Comentário editado</small> : null}
