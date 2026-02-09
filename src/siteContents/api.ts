@@ -116,7 +116,6 @@ async function requestJson<T>(path: string, searchParams: URLSearchParams, optio
 
   if (typeof options?.revalidate === "number") {
     requestOptions.next = { revalidate: options.revalidate };
-    requestOptions.cache = options?.cache ?? "force-cache";
   }
 
   const response = await fetch(url.toString(), requestOptions);
