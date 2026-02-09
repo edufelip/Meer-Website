@@ -15,8 +15,19 @@ type ContentPageProps = {
 
 const COMMENTS_PAGE_SIZE = 10;
 
+function safeDecode(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
 function parseContentId(rawId: string): number | null {
-  const parsed = Number.parseInt(decodeURIComponent(rawId), 10);
+  const decoded = safeDecode(rawId);
+  if (!decoded) return null;
+
+  const parsed = Number.parseInt(decoded, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return parsed;
 }
@@ -69,10 +80,11 @@ function buildCommentsHref(contentId: number, commentsPage: number): Route {
 }
 
 export function generateMetadata({ params }: ContentPageProps): Metadata {
-  const contentId = decodeURIComponent(params.id);
+  const contentId = safeDecode(params.id);
+  const metadataId = contentId && contentId.trim() ? contentId : "inválido";
 
   return {
-    title: `Guia Brechó - Conteúdo ${contentId}`,
+    title: `Guia Brechó - Conteúdo ${metadataId}`,
     description: "Veja detalhes do conteúdo e comentários da comunidade."
   };
 }
