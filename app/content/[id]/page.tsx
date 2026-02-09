@@ -14,6 +14,7 @@ type ContentPageProps = {
 };
 
 const COMMENTS_PAGE_SIZE = 10;
+const CONTENTS_REVALIDATE_SECONDS = 120;
 
 function safeDecode(value: string): string | null {
   try {
@@ -73,6 +74,12 @@ function commentsErrorMessage(error: SiteContentsApiError): string {
   return error.message || "Não foi possível carregar os comentários.";
 }
 
+function toApiError(error: unknown, fallbackMessage: string): SiteContentsApiError {
+  return error instanceof SiteContentsApiError
+    ? error
+    : new SiteContentsApiError(500, fallbackMessage);
+}
+
 function buildCommentsHref(contentId: number, commentsPage: number): Route {
   const params = new URLSearchParams();
   params.set("commentsPage", String(Math.max(0, commentsPage)));
@@ -112,18 +119,19 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
 
   const deepLink = `meer://content/${encodeURIComponent(String(contentId))}`;
 
-  let content: Awaited<ReturnType<typeof getSiteGuideContentById>> | null = null;
-  let contentError: SiteContentsApiError | null = null;
+  const [contentResult, commentsResult] = await Promise.allSettled([
+    getSiteGuideContentById(contentId, { revalidate: CONTENTS_REVALIDATE_SECONDS }),
+    listSiteGuideContentComments(contentId, {
+      page: commentsPage,
+      pageSize: COMMENTS_PAGE_SIZE,
+      revalidate: CONTENTS_REVALIDATE_SECONDS
+    })
+  ]);
 
-  try {
-    content = await getSiteGuideContentById(contentId);
-  } catch (err) {
-    if (err instanceof SiteContentsApiError) {
-      contentError = err;
-    } else {
-      contentError = new SiteContentsApiError(500, "Falha ao carregar conteúdo.");
-    }
-  }
+  const content = contentResult.status === "fulfilled" ? contentResult.value : null;
+  const contentError = contentResult.status === "rejected"
+    ? toApiError(contentResult.reason, "Falha ao carregar conteúdo.")
+    : null;
 
   if (!content || contentError) {
     const message = contentError ? contentErrorMessage(contentError) : "Falha ao carregar conteúdo.";
@@ -147,21 +155,10 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
     );
   }
 
-  let comments: Awaited<ReturnType<typeof listSiteGuideContentComments>> | null = null;
-  let commentsError: SiteContentsApiError | null = null;
-
-  try {
-    comments = await listSiteGuideContentComments(content.id, {
-      page: commentsPage,
-      pageSize: COMMENTS_PAGE_SIZE
-    });
-  } catch (err) {
-    if (err instanceof SiteContentsApiError) {
-      commentsError = err;
-    } else {
-      commentsError = new SiteContentsApiError(500, "Falha ao carregar comentários.");
-    }
-  }
+  const comments = commentsResult.status === "fulfilled" ? commentsResult.value : null;
+  const commentsError = commentsResult.status === "rejected"
+    ? toApiError(commentsResult.reason, "Falha ao carregar comentários.")
+    : null;
 
   return (
     <main className="page contents-page">
