@@ -15,7 +15,7 @@ type FeaturedContentsSectionProps = {
 export default function FeaturedContentsSection({ featured }: FeaturedContentsSectionProps) {
   return (
     <section className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] backdrop-blur md:p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
         <div>
           <p className="text-xs uppercase tracking-[0.35em] text-neutral-500">
             Conteúdos
@@ -27,12 +27,6 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
             Veja publicações recentes da comunidade e descubra novos brechós e tendências.
           </p>
         </div>
-        <Link
-          href="/contents"
-          className="inline-flex w-fit items-center justify-center rounded-full border border-amber-300 bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-amber-600"
-        >
-          Load more
-        </Link>
       </div>
 
       {featured.items.length > 0 ? (
@@ -87,6 +81,15 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
             : "Não foi possível carregar os conteúdos agora. Acesse a listagem completa para tentar novamente."}
         </div>
       )}
+
+      <div className="mt-6 flex justify-end">
+        <Link
+          href="/contents"
+          className="inline-flex w-fit items-center justify-center rounded-full border border-amber-300 bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-amber-600"
+        >
+          Ver mais
+        </Link>
+      </div>
     </section>
   );
 }
