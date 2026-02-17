@@ -6,6 +6,7 @@ import { getSiteContentsServerToken } from "../src/siteContents/serverAuth";
 import FeaturedContentsSection, {
   type FeaturedContentState
 } from "../src/siteContents/ui/FeaturedContentsSection";
+import LandingContentsAd from "../src/ads/ui/LandingContentsAd";
 
 const brandName = "Guia Brechó";
 
@@ -148,6 +149,8 @@ export default async function HomePage() {
             </article>
           ))}
         </section>
+
+        <LandingContentsAd />
 
         <FeaturedContentsSection featured={featured} />
 
