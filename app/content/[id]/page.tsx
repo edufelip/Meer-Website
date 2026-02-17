@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import OpenInAppButton from "../../../src/OpenInAppButton";
+import LandingContentsAd from "../../../src/ads/ui/LandingContentsAd";
 import JsonLdScript from "../../../src/seo/JsonLdScript";
 import {
   getSiteGuideContentById,
@@ -173,6 +174,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
   if (!contentId) {
     return (
       <main className="page contents-page">
+        <LandingContentsAd />
         <section className="hero">
           <span className="eyebrow">Conteúdo</span>
           <h1>Conteúdo inválido.</h1>
@@ -219,6 +221,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
 
     return (
       <main className="page contents-page">
+        <LandingContentsAd />
         <section className="hero">
           <span className="eyebrow">Conteúdo</span>
           <h1>Não foi possível abrir este conteúdo.</h1>
@@ -271,6 +274,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
 
   return (
     <main className="page contents-page">
+      <LandingContentsAd />
       <JsonLdScript
         id="content-breadcrumb-jsonld"
         data={buildContentBreadcrumbJsonLd(content)}
@@ -291,6 +295,9 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
           <Link className="button secondary" href="/contents">
             Ver mais conteúdos
           </Link>
+        </div>
+        <div className="mt-6">
+          <LandingContentsAd />
         </div>
       </section>
 

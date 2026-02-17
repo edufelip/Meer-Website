@@ -1,6 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Lexend, Space_Grotesk } from "next/font/google";
+import { ADSENSE_CLIENT_ID } from "../src/ads/config";
 import { androidPackage, appName, iosAppStoreId, webBaseUrl } from "../src/urls";
 
 const display = Space_Grotesk({
@@ -57,9 +59,19 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
+  const adSenseSrc = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`;
+
   return (
     <html lang="pt-BR" className={`${display.variable} ${body.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Script
+          id="adsense-script"
+          src={adSenseSrc}
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
+        {children}
+      </body>
     </html>
   );
 }
