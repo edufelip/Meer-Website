@@ -8,8 +8,20 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/contents", "/content/", "/store/", "/privacy-policy", "/terms-eula"],
+        allow: ["/", "/app-ads.txt", "/contents", "/content/", "/store/", "/privacy-policy", "/terms-eula"],
         disallow: ["/reset-password/"]
+      },
+      {
+        userAgent: "Googlebot",
+        allow: ["/app-ads.txt"]
+      },
+      {
+        userAgent: "AdsBot-Google",
+        allow: ["/app-ads.txt"]
+      },
+      {
+        userAgent: "Mediapartners-Google",
+        allow: ["/app-ads.txt"]
       }
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
