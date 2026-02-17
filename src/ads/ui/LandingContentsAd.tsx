@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ADSENSE_CLIENT_ID, ADSENSE_HOME_CONTENTS_SLOT_ID } from "../config";
 
 declare global {
@@ -9,12 +9,22 @@ declare global {
   }
 }
 
-const adLabelClassName = "text-[11px] uppercase tracking-[0.24em] text-neutral-500";
+type LandingContentsAdProps = {
+  className?: string;
+};
 
-export default function LandingContentsAd() {
+type AdVisibilityState = "pending" | "visible" | "hidden";
+
+const NO_FILL_TIMEOUT_MS = 7000;
+const POLL_INTERVAL_MS = 250;
+
+export default function LandingContentsAd({ className }: LandingContentsAdProps) {
   const adClient = ADSENSE_CLIENT_ID;
   const adSlot = ADSENSE_HOME_CONTENTS_SLOT_ID;
+  const adRef = useRef<HTMLModElement | null>(null);
   const hasQueuedAd = useRef(false);
+  const isResolvedRef = useRef(false);
+  const [visibility, setVisibility] = useState<AdVisibilityState>("pending");
 
   useEffect(() => {
     if (!adClient || !adSlot || hasQueuedAd.current) {
@@ -31,17 +41,88 @@ export default function LandingContentsAd() {
     }
   }, [adClient, adSlot]);
 
+  useEffect(() => {
+    if (!adClient || !adSlot) {
+      return;
+    }
+
+    const startedAt = Date.now();
+
+    const resolveIfReady = () => {
+      const adNode = adRef.current;
+      if (!adNode || isResolvedRef.current) {
+        return;
+      }
+
+      const adStatus = adNode.getAttribute("data-ad-status");
+      if (adStatus === "unfilled") {
+        isResolvedRef.current = true;
+        setVisibility("hidden");
+        return;
+      }
+
+      const iframe = adNode.querySelector("iframe");
+      const iframeHeight = iframe ? iframe.getBoundingClientRect().height : 0;
+      if (adStatus === "filled" && iframe && iframeHeight > 0) {
+        isResolvedRef.current = true;
+        setVisibility("visible");
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      resolveIfReady();
+
+      if (isResolvedRef.current) {
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      if (Date.now() - startedAt >= NO_FILL_TIMEOUT_MS) {
+        isResolvedRef.current = true;
+        setVisibility("hidden");
+        window.clearInterval(intervalId);
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [adClient, adSlot]);
+
+  if (!adClient || !adSlot) {
+    return null;
+  }
+
+  if (visibility === "hidden") {
+    return null;
+  }
+
+  const wrapperStyle = visibility === "pending"
+    ? {
+      position: "fixed" as const,
+      left: "-9999px",
+      top: "-9999px",
+      width: "320px",
+      height: "56px",
+      opacity: 0,
+      pointerEvents: "none" as const
+    }
+    : undefined;
+
   return (
-    <section className="rounded-3xl border border-white/80 bg-white/70 p-4 shadow-[0_12px_24px_rgba(15,23,42,0.05)] backdrop-blur">
-      <p className={adLabelClassName}>Publicidade</p>
+    <div className={visibility === "visible" ? className : undefined} style={wrapperStyle}>
       <ins
-        className="adsbygoogle mt-2 block w-full overflow-hidden rounded-xl bg-white"
-        style={{ display: "block", minHeight: "90px" }}
+        ref={adRef}
+        className="adsbygoogle block w-full overflow-hidden"
+        style={{
+          display: "block",
+          height: "56px"
+        }}
         data-ad-client={adClient}
         data-ad-slot={adSlot}
-        data-ad-format="auto"
+        data-ad-format="horizontal"
         data-full-width-responsive="true"
       />
-    </section>
+    </div>
   );
 }

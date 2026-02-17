@@ -80,9 +80,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
             Voltar para o início
           </Link>
         </div>
-        <div className="mt-6">
-          <LandingContentsAd />
-        </div>
+        <LandingContentsAd className="mt-6" />
       </section>
 
       <section className="card contents-filters">

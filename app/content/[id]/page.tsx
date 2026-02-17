@@ -296,9 +296,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
             Ver mais conteúdos
           </Link>
         </div>
-        <div className="mt-6">
-          <LandingContentsAd />
-        </div>
+        <LandingContentsAd className="mt-6" />
       </section>
 
       <section className="card content-detail-card">
