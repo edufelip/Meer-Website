@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { Route } from "next";
 import JsonLdScript from "../../src/seo/JsonLdScript";
+import LandingContentsAd from "../../src/ads/ui/LandingContentsAd";
 import { listSiteGuideContents, SiteContentsApiError } from "../../src/siteContents/api";
 import { formatDateShort } from "../../src/siteContents/format";
 import { buildContentsMetadata } from "../../src/siteContents/metadata";
@@ -78,6 +79,9 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
           <Link className="button secondary" href="/">
             Voltar para o início
           </Link>
+        </div>
+        <div className="mt-6">
+          <LandingContentsAd />
         </div>
       </section>
 
