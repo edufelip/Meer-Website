@@ -1,4 +1,4 @@
-import urls from "../../constants/urls.json";
+import urls from "../constants/urls.json";
 
 export const appName = "Guia Brechó";
 export const androidPackage = "com.edufelip.meer";

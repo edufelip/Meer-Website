@@ -1,0 +1,5 @@
+{
+  "webBaseUrl": "https://guiabrecho.com.br",
+  "prodApiBaseUrl": "https://api.guiabrecho.com.br",
+  "devApiBaseUrl": "https://api.dev.guiabrecho.com.br"
+}

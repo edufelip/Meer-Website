@@ -1,5 +1,5 @@
-import { passwordRules } from "../../../../src/shared/validation/password";
-import pt from "../../../../src/shared/i18n/locales/pt-BR.json";
+import { passwordRules } from "../../../src/shared/validation/password";
+import pt from "../../../src/shared/i18n/locales/pt-BR.json";
 
 type TranslationMap = Record<string, unknown>;
 
