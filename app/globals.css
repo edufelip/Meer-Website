@@ -3,6 +3,8 @@
 
 :root {
   color-scheme: light;
+  --site-header-height: 5rem;
+  --site-header-offset: calc(var(--site-header-height) + 0.75rem);
   --bg: #f7f4ef;
   --bg-2: #efe8dc;
   --bg-3: #e8dccb;
@@ -47,6 +49,10 @@ html,
 body {
   padding: 0;
   margin: 0;
+}
+
+html {
+  scroll-padding-top: var(--site-header-offset);
 }
 
 body {
@@ -336,6 +342,38 @@ button.button {
 .contents-state p {
   margin: 0;
   color: var(--ink-soft);
+}
+
+.skeleton-block {
+  display: block;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-muted) 78%, var(--ink) 8%);
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    color-mix(in srgb, #ffffff 70%, transparent) 45%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .contents-grid {
