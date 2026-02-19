@@ -9,6 +9,7 @@ import FeaturedContentsSection, {
 } from "../src/siteContents/ui/FeaturedContentsSection";
 import LandingContentsAd from "../src/ads/ui/LandingContentsAd";
 import FeaturedStoresSection from "../src/featuredStores/ui/FeaturedStoresSection";
+import HomeSectionIntentHandler from "../src/navigation/HomeSectionIntentHandler";
 import PageShell from "../src/ui/PageShell";
 
 const brandName = "Guia Brechó";
@@ -119,6 +120,8 @@ export default function HomePage() {
       backgroundVariant="home"
       contentClassName="section-shell relative z-10 flex flex-col gap-16 pb-16 pt-28 md:pt-32"
     >
+      <HomeSectionIntentHandler />
+
       <section className="surface-card grid gap-10 p-8 md:p-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
@@ -187,10 +190,10 @@ export default function HomePage() {
           </div>
           <ul className="mt-6 grid gap-3 text-sm text-[var(--ink-soft)]">
             <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              500+ brechós cadastrados
+              Cadastre seu brechó
             </li>
             <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-              Conteúdos novos toda semana
+              Ache os brechós mais pertinhos de você
             </li>
             <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
               Curadoria de achados em alta
@@ -218,13 +221,13 @@ export default function HomePage() {
 
       <LandingContentsAd />
 
-      <div id="conteudos">
+      <div id="conteudos" className="scroll-mt-[var(--site-header-offset)]">
         <Suspense fallback={<FeaturedContentsSkeleton />}>
           <FeaturedContentsSectionContainer />
         </Suspense>
       </div>
 
-      <div id="destaques">
+      <div id="destaques" className="scroll-mt-[var(--site-header-offset)]">
         <Suspense fallback={<FeaturedStoresSkeleton />}>
           <FeaturedStoresSectionContainer />
         </Suspense>

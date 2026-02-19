@@ -19,12 +19,6 @@ export default function FeaturedStoresSection({ stores }: FeaturedStoresSectionP
             Curadoria especial da semana
           </h2>
         </div>
-        <Link
-          href="/contents"
-          className="hidden rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface)] md:inline-flex"
-        >
-          Explorar conteúdos
-        </Link>
       </div>
 
       {stores.length > 0 ? (

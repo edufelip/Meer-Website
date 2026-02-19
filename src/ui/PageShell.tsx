@@ -38,7 +38,7 @@ export default function PageShell({
   showFooter = true
 }: PageShellProps) {
   return (
-    <main className="relative min-h-screen overflow-hidden text-[var(--ink)]">
+    <main className="relative min-h-screen overflow-x-hidden text-[var(--ink)]">
       <SiteHeader />
       {renderBackground(backgroundVariant)}
       <div className={contentClassName}>

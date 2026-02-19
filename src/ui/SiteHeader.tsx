@@ -1,32 +1,82 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  buildHomeSectionPath,
+  type HomeSectionId,
+  scrollToHomeSection
+} from "../navigation/homeSections";
 import ThemeToggleButton from "../theme/ThemeToggleButton";
-import { androidStoreUrl } from "../urls";
+import { androidStoreUrl, iosStoreUrl } from "../urls";
 
-const navItems: Array<{ href: Route; label: string }> = [
-  { href: "/contents", label: "Explorar" },
-  { href: "/#conteudos", label: "Conteúdos" },
-  { href: "/#destaques", label: "Destaques" }
+type HeaderNavItem =
+  | { kind: "route"; href: Route; label: string }
+  | { kind: "section"; sectionId: HomeSectionId; label: string };
+
+const navItems: HeaderNavItem[] = [
+  { kind: "route", href: "/contents", label: "Explorar" },
+  { kind: "section", sectionId: "conteudos", label: "Conteúdos" },
+  { kind: "section", sectionId: "destaques", label: "Destaques" }
 ];
 
+const desktopNavItemClasses =
+  "rounded-full px-3 py-2 text-sm font-semibold text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--accent)]";
+const mobileNavItemClasses =
+  "rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--ink)]";
+
 export default function SiteHeader() {
+  const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [storeUrl, setStoreUrl] = useState(androidStoreUrl);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const platform = navigator.platform.toLowerCase();
+    const isAppleDevice =
+      /(iphone|ipad|ipod)/.test(userAgent) ||
+      platform.includes("mac") ||
+      userAgent.includes("macintosh");
+
+    setStoreUrl(isAppleDevice ? iosStoreUrl : androidStoreUrl);
+  }, []);
+
+  const navigateToSection = (sectionId: HomeSectionId, closeMenu = false) => {
+    if (closeMenu) {
+      setIsMobileMenuOpen(false);
+    }
+
+    if (pathname === "/") {
+      scrollToHomeSection(sectionId);
+      return;
+    }
+
+    router.push(buildHomeSectionPath(sectionId) as Route);
+  };
+
   return (
-    <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md">
+    <header
+      data-site-header
+      className="fixed inset-x-0 top-0 z-40 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md"
+    >
       <div className="section-shell flex h-20 items-center justify-between gap-3">
         <Link href="/" className="group inline-flex items-center gap-3">
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-xl text-[var(--accent)] shadow-[var(--shadow-soft)]">
-            ✦
+          <span className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)]">
+            <Image
+              src="/assets/images/app-icon.png"
+              alt="Guia Brechó logo"
+              width={44}
+              height={44}
+              priority
+            />
           </span>
           <span>
             <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
@@ -40,18 +90,25 @@ export default function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <nav className="hidden items-center gap-4 md:flex">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-full px-3 py-2 text-sm font-semibold text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--accent)]"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) =>
+              item.kind === "route" ? (
+                <Link key={item.href} href={item.href} className={desktopNavItemClasses}>
+                  {item.label}
+                </Link>
+              ) : (
+                <button
+                  key={item.sectionId}
+                  type="button"
+                  onClick={() => navigateToSection(item.sectionId)}
+                  className={desktopNavItemClasses}
+                >
+                  {item.label}
+                </button>
+              )
+            )}
 
             <a
-              href={androidStoreUrl}
+              href={storeUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--accent-2)]"
@@ -76,18 +133,29 @@ export default function SiteHeader() {
       {isMobileMenuOpen ? (
         <div className="border-t border-[var(--border)] bg-[var(--surface)]/95 md:hidden">
           <nav className="section-shell grid gap-2 py-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--ink)]"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) =>
+              item.kind === "route" ? (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={mobileNavItemClasses}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <button
+                  key={item.sectionId}
+                  type="button"
+                  onClick={() => navigateToSection(item.sectionId, true)}
+                  className={mobileNavItemClasses}
+                >
+                  {item.label}
+                </button>
+              )
+            )}
             <a
-              href={androidStoreUrl}
+              href={storeUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsMobileMenuOpen(false)}
