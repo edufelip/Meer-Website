@@ -1,5 +1,12 @@
-export const ADSENSE_CLIENT_ID =
-  process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? "ca-pub-6916049927005583";
+function readPublicEnv(name: string): string {
+  const value = process.env[name];
+  return typeof value === "string" ? value.trim() : "";
+}
 
-export const ADSENSE_HOME_CONTENTS_SLOT_ID =
-  process.env.NEXT_PUBLIC_ADSENSE_HOME_CONTENTS_SLOT_ID ?? "8499283290";
+export const ADS_ENABLED = readPublicEnv("NEXT_PUBLIC_ADS_ENABLED") !== "false";
+
+export const ADSENSE_CLIENT_ID = readPublicEnv("NEXT_PUBLIC_ADSENSE_CLIENT_ID");
+
+export const ADSENSE_HOME_CONTENTS_SLOT_ID = readPublicEnv(
+  "NEXT_PUBLIC_ADSENSE_HOME_CONTENTS_SLOT_ID"
+);

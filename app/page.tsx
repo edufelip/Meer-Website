@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { androidStoreUrl, iosStoreUrl } from "../src/urls";
 import { listSiteGuideContents, SiteContentsApiError } from "../src/siteContents/api";
 import { getSiteContentsServerToken } from "../src/siteContents/serverAuth";
@@ -54,9 +55,29 @@ async function getFeaturedContents(): Promise<FeaturedContentState> {
   }
 }
 
-export default async function HomePage() {
+async function FeaturedContentsSectionContainer() {
   const featured = await getFeaturedContents();
+  return <FeaturedContentsSection featured={featured} />;
+}
 
+function FeaturedContentsSkeleton() {
+  return (
+    <section className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] backdrop-blur md:p-8">
+      <p className="text-xs uppercase tracking-[0.35em] text-neutral-500">
+        Conteúdos
+      </p>
+      <h2 className="mt-2 text-3xl font-semibold leading-tight text-neutral-900">
+        Dicas fresquinhas para seu próximo garimpo.
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-600">
+        Carregando publicações recentes...
+      </p>
+      <div className="mt-6 h-48 rounded-2xl border border-amber-100 bg-amber-50/70" />
+    </section>
+  );
+}
+
+export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f7f4ef] text-neutral-900">
       <div className="pointer-events-none absolute inset-0">
@@ -135,6 +156,7 @@ export default async function HomePage() {
         </header>
 
         <section className="grid gap-6 md:grid-cols-3">
+          <h2 className="sr-only">Diferenciais do Guia Brechó</h2>
           {features.map((feature) => (
             <article
               key={feature.title}
@@ -152,7 +174,9 @@ export default async function HomePage() {
 
         <LandingContentsAd />
 
-        <FeaturedContentsSection featured={featured} />
+        <Suspense fallback={<FeaturedContentsSkeleton />}>
+          <FeaturedContentsSectionContainer />
+        </Suspense>
 
         <footer className="flex flex-col items-center gap-2 text-sm text-neutral-500 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-4">

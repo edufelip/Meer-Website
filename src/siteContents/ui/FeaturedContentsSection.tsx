@@ -12,6 +12,17 @@ type FeaturedContentsSectionProps = {
   featured: FeaturedContentState;
 };
 
+const MAX_DESCRIPTION_PREVIEW_LENGTH = 220;
+
+function truncatePreview(text: string, maxLength = MAX_DESCRIPTION_PREVIEW_LENGTH): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength - 3).trimEnd()}...`;
+}
+
 export default function FeaturedContentsSection({ featured }: FeaturedContentsSectionProps) {
   return (
     <section className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] backdrop-blur md:p-8">
@@ -44,7 +55,8 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
                         src={content.imageUrl}
                         alt={`Imagem de ${content.title}`}
                         fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        sizes="(max-width: 640px) calc(100vw - 4rem), (max-width: 1024px) calc(50vw - 3rem), 320px"
+                        quality={65}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                         loading="lazy"
                       />
@@ -63,7 +75,7 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
                       {content.title}
                     </h3>
                     <p className="home-content-description">
-                      {content.description}
+                      {truncatePreview(content.description)}
                     </p>
                     <p className="mt-auto text-xs text-neutral-500">
                       {formatDateShort(content.createdAt)} • {content.commentCount} comentários
