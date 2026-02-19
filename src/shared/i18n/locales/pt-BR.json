@@ -1,0 +1,23 @@
+{
+  "validation": {
+    "password": {
+      "invalid": "Senha invalida.",
+      "minLength": {
+        "label": "Minimo de 6 caracteres",
+        "error": "A senha deve ter pelo menos 6 caracteres."
+      },
+      "uppercase": {
+        "label": "Pelo menos uma letra maiuscula",
+        "error": "A senha deve ter pelo menos uma letra maiuscula."
+      },
+      "number": {
+        "label": "Pelo menos um numero",
+        "error": "A senha deve ter pelo menos um numero."
+      },
+      "special": {
+        "label": "Pelo menos um caractere especial",
+        "error": "A senha deve ter pelo menos um caractere especial."
+      }
+    }
+  }
+}

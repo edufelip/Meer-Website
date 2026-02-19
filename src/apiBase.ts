@@ -1,4 +1,4 @@
-import urls from "../../constants/urls.json";
+import urls from "../constants/urls.json";
 
 function isDevHost(hostname?: string | null): boolean {
   if (!hostname) return false;

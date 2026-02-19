@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { passwordRules, validatePassword } from "../../../../src/shared/validation/password";
+import { passwordRules, validatePassword } from "../../../src/shared/validation/password";
 import { selectApiBase } from "../../../src/apiBase";
 import { getPasswordRuleErrorMessage, getPasswordRulesLabels } from "./passwordRulesText";
 
