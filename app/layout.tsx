@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Lexend, Space_Grotesk } from "next/font/google";
+import FirebaseAnalyticsBootstrap from "../src/firebase/FirebaseAnalyticsBootstrap";
 import { androidPackage, appName, iosAppStoreId, webBaseUrl } from "../src/urls";
 
 const display = Space_Grotesk({
@@ -60,6 +61,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${display.variable} ${body.variable}`}>
       <body>
+        <FirebaseAnalyticsBootstrap />
         {children}
       </body>
     </html>

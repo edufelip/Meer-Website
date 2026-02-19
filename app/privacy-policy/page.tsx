@@ -65,7 +65,8 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-xl font-semibold mb-4">Third-Party Services</h2>
           <p className="mb-4">
             The App does not integrate third-party analytics, advertising platforms, or external data processors unless
-            explicitly stated within the App.
+            explicitly stated. The web experience may use Firebase Analytics to measure aggregated usage and improve
+            performance when this feature is enabled in deployment configuration.
           </p>
         </section>
 
