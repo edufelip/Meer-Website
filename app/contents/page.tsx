@@ -1,17 +1,16 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import type { Route } from "next";
 import JsonLdScript from "../../src/seo/JsonLdScript";
 import { isContentsListingAdEligible } from "../../src/ads/eligibility";
 import LandingContentsAd from "../../src/ads/ui/LandingContentsAd";
 import { listSiteGuideContents, SiteContentsApiError } from "../../src/siteContents/api";
-import { formatDateShort } from "../../src/siteContents/format";
 import { buildContentsMetadata } from "../../src/siteContents/metadata";
 import { buildContentsHref, parseContentsQuery } from "../../src/siteContents/query";
 import { getSiteContentsServerToken } from "../../src/siteContents/serverAuth";
 import { buildContentsBreadcrumbJsonLd, buildContentsItemListJsonLd } from "../../src/siteContents/structuredData";
 import type { GuideContentDto, PageResponse } from "../../src/siteContents/types";
+import ContentPreviewCard from "../../src/siteContents/ui/ContentPreviewCard";
+import PageShell from "../../src/ui/PageShell";
 
 type ContentsPageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -65,7 +64,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
   });
 
   return (
-    <main className="page contents-page">
+    <PageShell>
       <JsonLdScript
         id="contents-breadcrumb-jsonld"
         data={buildContentsBreadcrumbJsonLd()}
@@ -77,18 +76,24 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
         />
       ) : null}
 
-      <section className="hero">
-        <span className="eyebrow">Conteúdos</span>
-        <h1>Explore dicas e achados da comunidade.</h1>
-        <p>Use busca, ordenação e filtro por loja para encontrar o conteúdo certo.</p>
-        <div className="hero-actions">
+      <section className="surface-card p-7 md:p-9">
+        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+          Conteúdos
+        </span>
+        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--ink)] md:text-5xl">
+          Explore dicas e achados da comunidade.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--ink-soft)] md:text-lg">
+          Use busca, ordenação e filtro por loja para encontrar o conteúdo certo.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link className="button secondary" href="/">
             Voltar para o início
           </Link>
         </div>
       </section>
 
-      <section className="card contents-filters">
+      <section className="surface-card p-6 md:p-7">
         <form method="GET" action="/contents" className="contents-filter-form">
           <label className="form-field" htmlFor="q">
             <span className="label">Buscar conteúdo</span>
@@ -127,7 +132,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
       </section>
 
       {error ? (
-        <section className="card contents-state">
+        <section className="surface-card contents-state p-6">
           <h2>Não foi possível carregar os conteúdos.</h2>
           <p>{listErrorMessage(error)}</p>
           <div className="hero-actions">
@@ -139,7 +144,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
       ) : null}
 
       {response && response.items.length === 0 ? (
-        <section className="card contents-state">
+        <section className="surface-card contents-state p-6">
           <h2>Nenhum conteúdo encontrado.</h2>
           <p>Tente ajustar a busca ou limpar os filtros para ampliar os resultados.</p>
           <div className="hero-actions">
@@ -154,34 +159,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
         <>
           <section className="contents-grid" aria-label="Lista de conteúdos">
             {response.items.map((item) => (
-              <article key={item.id} className="card content-card">
-                  <Link className="content-card-link" href={`/content/${item.id}` as Route}>
-                    <div className="content-card-image-wrap relative">
-                      {item.imageUrl ? (
-                        <Image
-                          src={item.imageUrl}
-                          alt={`Imagem do conteúdo ${item.title}`}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1080px) 50vw, 33vw"
-                          className="content-card-image"
-                          loading="lazy"
-                        />
-                      ) : (
-                      <div className="content-card-image content-card-image-fallback">Sem imagem</div>
-                    )}
-                  </div>
-                  <div className="content-card-body">
-                    <p className="content-card-store">{item.thriftStoreName || "Comunidade"}</p>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                    <div className="content-card-meta">
-                      <span>{formatDateShort(item.createdAt)}</span>
-                      <span>{item.likeCount} curtidas</span>
-                      <span>{item.commentCount} comentários</span>
-                    </div>
-                  </div>
-                </Link>
-              </article>
+              <ContentPreviewCard key={item.id} item={item} showLikeCount />
             ))}
           </section>
           {shouldRenderListingAd ? <LandingContentsAd className="mt-2" /> : null}
@@ -189,7 +167,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
       ) : null}
 
       {response ? (
-        <nav className="card contents-pagination" aria-label="Paginação de conteúdos">
+        <nav className="surface-card contents-pagination p-5" aria-label="Paginação de conteúdos">
           {query.page > 0 ? (
             <Link
               className="button secondary"
@@ -227,6 +205,6 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
           )}
         </nav>
       ) : null}
-    </main>
+    </PageShell>
   );
 }

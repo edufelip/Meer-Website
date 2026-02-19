@@ -11,7 +11,7 @@ import {
   listSiteGuideContentComments,
   SiteContentsApiError
 } from "../../../src/siteContents/api";
-import { formatDateShort, formatDateTime } from "../../../src/siteContents/format";
+import { formatDateTime } from "../../../src/siteContents/format";
 import {
   buildContentDescription,
   parseAbsoluteUrlOrUndefined,
@@ -20,11 +20,24 @@ import {
 import { parseCommentsPage } from "../../../src/siteContents/query";
 import { selectRelatedContents } from "../../../src/siteContents/related";
 import { getSiteContentsServerToken } from "../../../src/siteContents/serverAuth";
-import { buildContentArticleJsonLd, buildContentBreadcrumbJsonLd } from "../../../src/siteContents/structuredData";
+import {
+  buildContentArticleJsonLd,
+  buildContentBreadcrumbJsonLd
+} from "../../../src/siteContents/structuredData";
+import type { GuideContentDto, PageResponse } from "../../../src/siteContents/types";
+import CommentsSection from "../../../src/siteContents/ui/CommentsSection";
+import RelatedContentsSection from "../../../src/siteContents/ui/RelatedContentsSection";
+import PageShell from "../../../src/ui/PageShell";
 
 type ContentPageProps = {
   params: { id: string };
   searchParams?: Record<string, string | string[] | undefined>;
+};
+
+type ContentStateViewProps = {
+  title: string;
+  message: string;
+  deepLink?: string;
 };
 
 const COMMENTS_PAGE_SIZE = 10;
@@ -48,7 +61,7 @@ function parseContentId(rawId: string): number | null {
   return parsed;
 }
 
-function contentErrorMessage(error: SiteContentsApiError): string {
+function buildContentErrorMessage(error: SiteContentsApiError): string {
   if (error.status === 404) {
     return "Este conteúdo não foi encontrado. Ele pode ter sido removido.";
   }
@@ -64,7 +77,7 @@ function contentErrorMessage(error: SiteContentsApiError): string {
   return error.message || "Não foi possível carregar o conteúdo.";
 }
 
-function commentsErrorMessage(error: SiteContentsApiError): string {
+function buildCommentsErrorMessage(error: SiteContentsApiError): string {
   if (error.status === 400) {
     return "A paginação de comentários está inválida.";
   }
@@ -95,7 +108,36 @@ function buildCommentsHref(contentId: number, commentsPage: number): Route {
   return `/content/${contentId}?${params.toString()}` as Route;
 }
 
-export async function generateMetadata({ params, searchParams }: ContentPageProps): Promise<Metadata> {
+function ContentStateView({ title, message, deepLink }: ContentStateViewProps) {
+  return (
+    <PageShell>
+      <section className="surface-card p-8 md:p-10">
+        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+          Conteúdo
+        </span>
+        <h1 className="mt-3 text-4xl font-semibold text-[var(--ink)] md:text-5xl">
+          {title}
+        </h1>
+        <p className="mt-4 text-base text-[var(--ink-soft)]">{message}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link className="button" href="/contents">
+            Voltar para conteúdos
+          </Link>
+          {deepLink ? (
+            <OpenInAppButton className="button secondary" deepLink={deepLink}>
+              Abrir no app
+            </OpenInAppButton>
+          ) : null}
+        </div>
+      </section>
+    </PageShell>
+  );
+}
+
+export async function generateMetadata({
+  params,
+  searchParams
+}: ContentPageProps): Promise<Metadata> {
   const contentId = parseContentId(params.id);
   const commentsPage = parseCommentsPage(searchParams);
   const indexPage = commentsPage === 0;
@@ -153,12 +195,14 @@ export async function generateMetadata({ params, searchParams }: ContentPageProp
     const apiError = toApiError(error, "Não foi possível carregar este conteúdo.");
 
     return {
-      title: apiError.status === 404
-        ? "Conteúdo não encontrado | Guia Brechó"
-        : "Conteúdo | Guia Brechó",
-      description: apiError.status === 404
-        ? "Este conteúdo não foi encontrado ou pode ter sido removido."
-        : "Veja conteúdo da comunidade no Guia Brechó.",
+      title:
+        apiError.status === 404
+          ? "Conteúdo não encontrado | Guia Brechó"
+          : "Conteúdo | Guia Brechó",
+      description:
+        apiError.status === 404
+          ? "Este conteúdo não foi encontrado ou pode ter sido removido."
+          : "Veja conteúdo da comunidade no Guia Brechó.",
       alternates: {
         canonical: canonicalPath
       },
@@ -174,29 +218,50 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
 
   if (!contentId) {
     return (
-      <main className="page contents-page">
-        <section className="hero">
-          <span className="eyebrow">Conteúdo</span>
-          <h1>Conteúdo inválido.</h1>
-          <p>O identificador informado não é numérico.</p>
-          <div className="hero-actions">
-            <Link className="button" href="/contents">
-              Voltar para conteúdos
-            </Link>
-          </div>
-        </section>
-      </main>
+      <ContentStateView
+        title="Conteúdo inválido."
+        message="O identificador informado não é numérico."
+      />
     );
   }
 
   const deepLink = `meer://content/${encodeURIComponent(String(contentId))}`;
 
-  const [contentResult, commentsResult, fallbackRelatedResult] = await Promise.allSettled([
-    getSiteGuideContentById(contentId, {
+  let content: GuideContentDto | null = null;
+  let contentError: SiteContentsApiError | null = null;
+
+  try {
+    content = await getSiteGuideContentById(contentId, {
       token,
       revalidate: CONTENTS_REVALIDATE_SECONDS
-    }),
-    listSiteGuideContentComments(contentId, {
+    });
+  } catch (error) {
+    contentError = toApiError(error, "Falha ao carregar conteúdo.");
+  }
+
+  if (!content || contentError) {
+    return (
+      <ContentStateView
+        title="Não foi possível abrir este conteúdo."
+        message={contentError ? buildContentErrorMessage(contentError) : "Falha ao carregar conteúdo."}
+        deepLink={deepLink}
+      />
+    );
+  }
+
+  const storeRelatedPromise: Promise<PageResponse<GuideContentDto> | null> = content.thriftStoreId
+    ? listSiteGuideContents({
+      page: 0,
+      pageSize: RELATED_CONTENTS_PAGE_SIZE,
+      sort: "newest",
+      storeId: content.thriftStoreId,
+      token,
+      revalidate: CONTENTS_REVALIDATE_SECONDS
+    })
+    : Promise.resolve(null);
+
+  const [commentsResult, fallbackRelatedResult, storeRelatedResult] = await Promise.allSettled([
+    listSiteGuideContentComments(content.id, {
       page: commentsPage,
       pageSize: COMMENTS_PAGE_SIZE,
       token,
@@ -208,75 +273,37 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
       sort: "newest",
       token,
       revalidate: CONTENTS_REVALIDATE_SECONDS
-    })
+    }),
+    storeRelatedPromise
   ]);
 
-  const content = contentResult.status === "fulfilled" ? contentResult.value : null;
-  const contentError = contentResult.status === "rejected"
-    ? toApiError(contentResult.reason, "Falha ao carregar conteúdo.")
-    : null;
-
-  if (!content || contentError) {
-    const message = contentError ? contentErrorMessage(contentError) : "Falha ao carregar conteúdo.";
-
-    return (
-      <main className="page contents-page">
-        <section className="hero">
-          <span className="eyebrow">Conteúdo</span>
-          <h1>Não foi possível abrir este conteúdo.</h1>
-          <p>{message}</p>
-          <div className="hero-actions">
-            <Link className="button" href="/contents">
-              Voltar para conteúdos
-            </Link>
-            <OpenInAppButton className="button secondary" deepLink={deepLink}>
-              Abrir no app
-            </OpenInAppButton>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
   const comments = commentsResult.status === "fulfilled" ? commentsResult.value : null;
-  const commentsError = commentsResult.status === "rejected"
-    ? toApiError(commentsResult.reason, "Falha ao carregar comentários.")
-    : null;
-  const fallbackRelatedContents = fallbackRelatedResult.status === "fulfilled"
-    ? fallbackRelatedResult.value.items
-    : [];
+  const commentsError =
+    commentsResult.status === "rejected"
+      ? toApiError(commentsResult.reason, "Falha ao carregar comentários.")
+      : null;
 
-  let preferredRelatedContents = fallbackRelatedContents;
+  const fallbackRelatedContents =
+    fallbackRelatedResult.status === "fulfilled" ? fallbackRelatedResult.value.items : [];
 
-  if (content.thriftStoreId) {
-    try {
-      const storeRelated = await listSiteGuideContents({
-        page: 0,
-        pageSize: RELATED_CONTENTS_PAGE_SIZE,
-        sort: "newest",
-        storeId: content.thriftStoreId,
-        token,
-        revalidate: CONTENTS_REVALIDATE_SECONDS
-      });
-
-      preferredRelatedContents = storeRelated.items;
-    } catch {
-      // Keep fallback-related list when store filtered fetch fails.
-    }
-  }
+  const preferredRelatedContents =
+    storeRelatedResult.status === "fulfilled" && storeRelatedResult.value
+      ? storeRelatedResult.value.items
+      : fallbackRelatedContents;
 
   const relatedContents = selectRelatedContents({
     currentContentId: content.id,
     preferred: preferredRelatedContents,
     fallback: fallbackRelatedContents
   });
+
   const shouldRenderContentAd = isContentDetailAdEligible({
     title: content.title,
     description: content.description
   });
 
   return (
-    <main className="page contents-page">
+    <PageShell>
       <JsonLdScript
         id="content-breadcrumb-jsonld"
         data={buildContentBreadcrumbJsonLd(content)}
@@ -286,11 +313,17 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
         data={buildContentArticleJsonLd(content)}
       />
 
-      <section className="hero content-detail-hero">
-        <span className="eyebrow">Conteúdo</span>
-        <h1>{content.title}</h1>
-        <p>{content.description}</p>
-        <div className="hero-actions">
+      <section className="surface-card p-8 md:p-10">
+        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+          Conteúdo
+        </span>
+        <h1 className="mt-3 text-4xl font-semibold leading-tight text-[var(--ink)] md:text-5xl">
+          {content.title}
+        </h1>
+        <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--ink-soft)] md:text-lg">
+          {content.description}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
           <OpenInAppButton className="button" deepLink={deepLink}>
             Abrir no app
           </OpenInAppButton>
@@ -300,7 +333,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
         </div>
       </section>
 
-      <section className="card content-detail-card">
+      <section className="surface-card content-detail-card p-6">
         {content.imageUrl ? (
           <div className="content-detail-image-wrap">
             <Image
@@ -322,102 +355,21 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
             <strong>Publicado em:</strong> {formatDateTime(content.createdAt)}
           </p>
           <p>
-            <strong>Curtidas:</strong> {content.likeCount} • <strong>Comentários:</strong> {content.commentCount}
+            <strong>Curtidas:</strong> {content.likeCount} • <strong>Comentários:</strong>{" "}
+            {content.commentCount}
           </p>
         </div>
       </section>
 
       {shouldRenderContentAd ? <LandingContentsAd className="mt-2" /> : null}
 
-      {relatedContents.length > 0 ? (
-        <section className="card related-contents-section">
-          <h2>Conteúdos relacionados</h2>
-          <p>
-            Continue explorando temas parecidos para aprofundar seu próximo garimpo.
-          </p>
+      <RelatedContentsSection items={relatedContents} />
 
-          <div className="contents-grid related-contents-grid" aria-label="Conteúdos relacionados">
-            {relatedContents.map((item) => (
-              <article key={item.id} className="card content-card">
-                <Link className="content-card-link" href={`/content/${item.id}` as Route}>
-                  <div className="content-card-image-wrap relative">
-                    {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={`Imagem do conteúdo ${item.title}`}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1080px) 50vw, 33vw"
-                        className="content-card-image"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="content-card-image content-card-image-fallback">Sem imagem</div>
-                    )}
-                  </div>
-                  <div className="content-card-body">
-                    <p className="content-card-store">{item.thriftStoreName || "Comunidade"}</p>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                    <div className="content-card-meta">
-                      <span>{formatDateShort(item.createdAt)}</span>
-                      <span>{item.commentCount} comentários</span>
-                    </div>
-                  </div>
-                </Link>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="card comments-section">
-        <h2>Comentários</h2>
-
-        {commentsError ? <p className="form-error">{commentsErrorMessage(commentsError)}</p> : null}
-
-        {comments && comments.items.length === 0 ? <p>Nenhum comentário ainda.</p> : null}
-
-        {comments && comments.items.length > 0 ? (
-          <div className="comments-list">
-            {comments.items.map((comment) => (
-              <article key={comment.id} className="comment-item">
-                <header className="comment-header">
-                  <strong>{comment.userDisplayName || "Usuário"}</strong>
-                  <span>{formatDateTime(comment.createdAt)}</span>
-                </header>
-                <p>{comment.body}</p>
-                {comment.edited ? <small>Comentário editado</small> : null}
-              </article>
-            ))}
-          </div>
-        ) : null}
-
-        {comments ? (
-          <nav className="contents-pagination" aria-label="Paginação de comentários">
-            {comments.page > 0 ? (
-              <Link className="button secondary" href={buildCommentsHref(content.id, comments.page - 1)}>
-                Comentários anteriores
-              </Link>
-            ) : (
-              <span className="button secondary button-disabled" aria-disabled>
-                Comentários anteriores
-              </span>
-            )}
-
-            <p className="contents-pagination-label">Página {comments.page + 1}</p>
-
-            {comments.hasNext ? (
-              <Link className="button" href={buildCommentsHref(content.id, comments.page + 1)}>
-                Próximos comentários
-              </Link>
-            ) : (
-              <span className="button button-disabled" aria-disabled>
-                Próximos comentários
-              </span>
-            )}
-          </nav>
-        ) : null}
-      </section>
-    </main>
+      <CommentsSection
+        comments={comments}
+        commentsErrorMessage={commentsError ? buildCommentsErrorMessage(commentsError) : null}
+        buildPageHref={(page) => buildCommentsHref(content.id, page)}
+      />
+    </PageShell>
   );
 }

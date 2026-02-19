@@ -4,6 +4,7 @@ import { Lexend, Space_Grotesk } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import FirebaseAnalyticsBootstrap from "../src/firebase/FirebaseAnalyticsBootstrap";
 import { androidPackage, appName, iosAppStoreId, webBaseUrl } from "../src/urls";
+import { THEME_STORAGE_KEY } from "../src/theme/theme";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -39,9 +40,6 @@ export const metadata: Metadata = {
     title: "Guia Brechó",
     description: "Descubra brechós, conteúdos e dicas de consumo consciente."
   },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION
-  },
   appLinks: {
     ios: {
       url: webBaseUrl,
@@ -56,11 +54,28 @@ export const metadata: Metadata = {
   }
 };
 
+const themeInitScript = `
+  (() => {
+    try {
+      const stored = window.localStorage.getItem("${THEME_STORAGE_KEY}");
+      const theme = stored === "dark" ? "dark" : "light";
+      const root = document.documentElement;
+      root.classList.toggle("dark", theme === "dark");
+      root.style.colorScheme = theme;
+    } catch {
+      document.documentElement.style.colorScheme = "light";
+    }
+  })();
+`;
+
 export default function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${body.variable}`}>
+    <html lang="pt-BR" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
+      <head>
+        <script id="theme-init" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
         <FirebaseAnalyticsBootstrap />
         {children}

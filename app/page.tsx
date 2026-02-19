@@ -1,13 +1,15 @@
 import Image from "next/image";
-import Link from "next/link";
 import { Suspense } from "react";
 import { androidStoreUrl, iosStoreUrl } from "../src/urls";
 import { listSiteGuideContents, SiteContentsApiError } from "../src/siteContents/api";
 import { getSiteContentsServerToken } from "../src/siteContents/serverAuth";
+import { listFeaturedStores } from "../src/featuredStores/api";
 import FeaturedContentsSection, {
   type FeaturedContentState
 } from "../src/siteContents/ui/FeaturedContentsSection";
 import LandingContentsAd from "../src/ads/ui/LandingContentsAd";
+import FeaturedStoresSection from "../src/featuredStores/ui/FeaturedStoresSection";
+import PageShell from "../src/ui/PageShell";
 
 const brandName = "Guia Brechó";
 
@@ -60,6 +62,19 @@ async function FeaturedContentsSectionContainer() {
   return <FeaturedContentsSection featured={featured} />;
 }
 
+async function getFeaturedStores() {
+  try {
+    return await listFeaturedStores();
+  } catch {
+    return [];
+  }
+}
+
+async function FeaturedStoresSectionContainer() {
+  const stores = await getFeaturedStores();
+  return <FeaturedStoresSection stores={stores} />;
+}
+
 function FeaturedContentsSkeleton() {
   return (
     <section className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] backdrop-blur md:p-8">
@@ -77,49 +92,47 @@ function FeaturedContentsSkeleton() {
   );
 }
 
+function FeaturedStoresSkeleton() {
+  return (
+    <section className="surface-card p-6 md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--ink-muted)]">
+        Brechós em destaque
+      </p>
+      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
+        Curadoria especial da semana
+      </h2>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="aspect-square animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]"
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function HomePage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#f7f4ef] text-neutral-900">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-36 right-[-10rem] h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.35),_rgba(247,244,239,0))] blur-2xl" />
-        <div className="absolute bottom-[-12rem] left-[-6rem] h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(circle_at_center,_rgba(16,185,129,0.28),_rgba(247,244,239,0))] blur-2xl" />
-        <div className="absolute left-[45%] top-1/4 h-[18rem] w-[18rem] rounded-full bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.2),_rgba(247,244,239,0))] blur-2xl" />
-      </div>
+    <PageShell
+      backgroundVariant="home"
+      contentClassName="section-shell relative z-10 flex flex-col gap-16 pb-16 pt-28 md:pt-32"
+    >
+      <section className="surface-card grid gap-10 p-8 md:p-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+            Guia Brechó
+          </p>
+          <h1 className="mt-4 max-w-4xl font-[var(--font-display)] text-4xl font-semibold leading-[1.08] text-[var(--ink)] md:text-6xl">
+            Ache brechós incríveis, crie rotas e garanta peças únicas sem esforço.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--ink-soft)] md:text-xl">
+            {brandName} é o seu guia para garimpar com propósito. Descubra novidades,
+            organize suas visitas e transforme cada busca em um encontro com o estilo certo.
+          </p>
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-20 pt-16 md:px-12 md:pt-24">
-        <header className="flex flex-col gap-10">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-[0_18px_36px_rgba(15,23,42,0.08)]">
-              <Image
-                src="/assets/images/app-icon.png"
-                alt={`${brandName} app icon`}
-                width={36}
-                height={36}
-                priority
-                className="rounded-xl"
-              />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-neutral-500">
-                Guia Brechó
-              </p>
-              <p className="text-lg font-semibold text-neutral-900">
-                Seu radar de achados conscientes
-              </p>
-            </div>
-          </div>
-
-          <div className="max-w-3xl">
-            <h1 className="text-4xl font-semibold leading-tight text-neutral-900 md:text-6xl">
-              Ache brechós incríveis, crie rotas e garanta peças únicas sem esforço.
-            </h1>
-            <p className="mt-5 text-lg leading-relaxed text-neutral-600 md:text-xl">
-              {brandName} é o seu guia para garimpar com propósito. Descubra novidades,
-              organize suas visitas e transforme cada busca em um encontro com o estilo certo.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-4 md:flex-row">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <a
               className={badgeLinkClasses}
               href={iosStoreUrl}
@@ -153,48 +166,69 @@ export default function HomePage() {
               />
             </a>
           </div>
-        </header>
+        </div>
 
-        <section className="grid gap-6 md:grid-cols-3">
-          <h2 className="sr-only">Diferenciais do Guia Brechó</h2>
-          {features.map((feature) => (
-            <article
-              key={feature.title}
-              className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] backdrop-blur"
-            >
-              <h3 className="text-xl font-semibold text-neutral-900">
-                {feature.title}
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-                {feature.description}
-              </p>
-            </article>
-          ))}
-        </section>
+        <aside className="surface-card p-5 md:p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]">
+              <Image
+                src="/assets/images/app-icon.png"
+                alt={`${brandName} app icon`}
+                width={40}
+                height={40}
+                priority
+                className="rounded-xl"
+              />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--ink)]">Guia Brechó</p>
+              <p className="text-xs text-[var(--ink-soft)]">Seu radar de achados conscientes</p>
+            </div>
+          </div>
+          <ul className="mt-6 grid gap-3 text-sm text-[var(--ink-soft)]">
+            <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              500+ brechós cadastrados
+            </li>
+            <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              Conteúdos novos toda semana
+            </li>
+            <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              Curadoria de achados em alta
+            </li>
+          </ul>
+        </aside>
+      </section>
 
-        <LandingContentsAd />
+      <section id="explorar" className="grid gap-6 md:grid-cols-3">
+        <h2 className="sr-only">Diferenciais do Guia Brechó</h2>
+        {features.map((feature) => (
+          <article
+            key={feature.title}
+            className="surface-card p-6 transition hover:-translate-y-0.5"
+          >
+            <h3 className="text-xl font-semibold text-[var(--ink)]">
+              {feature.title}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+              {feature.description}
+            </p>
+          </article>
+        ))}
+      </section>
 
+      <LandingContentsAd />
+
+      <div id="conteudos">
         <Suspense fallback={<FeaturedContentsSkeleton />}>
           <FeaturedContentsSectionContainer />
         </Suspense>
-
-        <footer className="flex flex-col items-center gap-2 text-sm text-neutral-500 sm:flex-row sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/privacy-policy"
-              className="transition-colors hover:text-neutral-700"
-            >
-              Privacy Policy
-            </Link>
-            <Link
-              href="/terms-eula"
-              className="transition-colors hover:text-neutral-700"
-            >
-              Terms &amp; EULA
-            </Link>
-          </div>
-        </footer>
       </div>
-    </main>
+
+      <div id="destaques">
+        <Suspense fallback={<FeaturedStoresSkeleton />}>
+          <FeaturedStoresSectionContainer />
+        </Suspense>
+      </div>
+    </PageShell>
   );
 }
