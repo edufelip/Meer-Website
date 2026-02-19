@@ -1,4 +1,5 @@
 import { selectApiBase } from "../apiBase";
+import { loggedFetch } from "../shared/http/loggedFetch";
 import type { ContentSort, GuideContentCommentDto, GuideContentDto, PageResponse } from "./types";
 
 const DEFAULT_PAGE = 0;
@@ -97,7 +98,12 @@ async function parseError(response: Response): Promise<never> {
 }
 
 async function requestJson<T>(path: string, searchParams: URLSearchParams, options?: RequestOptions): Promise<T> {
-  const baseUrl = selectApiBase().replace(/\/+$/, "");
+  const selectedApiBase = selectApiBase();
+  if (!selectedApiBase) {
+    throw new SiteContentsApiError(503, "API base URL nao configurada.");
+  }
+
+  const baseUrl = selectedApiBase.replace(/\/+$/, "");
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = new URL(`${baseUrl}${normalizedPath}`);
 
@@ -118,7 +124,9 @@ async function requestJson<T>(path: string, searchParams: URLSearchParams, optio
     requestOptions.next = { revalidate: options.revalidate };
   }
 
-  const response = await fetch(url.toString(), requestOptions);
+  const response = await loggedFetch(url.toString(), requestOptions, {
+    label: "site-contents"
+  });
 
   if (!response.ok) {
     await parseError(response);

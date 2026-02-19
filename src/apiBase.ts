@@ -1,5 +1,3 @@
-import urls from "../constants/urls.json";
-
 function isDevHost(hostname?: string | null): boolean {
   if (!hostname) return false;
   const host = hostname.toLowerCase();
@@ -15,14 +13,11 @@ function currentHostname(explicit?: string | null): string | undefined {
   return undefined;
 }
 
-export function selectApiBase(hostname?: string | null): string {
+export function selectApiBase(hostname?: string | null): string | null {
   const host = currentHostname(hostname);
   const preferDev = isDevHost(host);
-
-  const base =
-    (preferDev ? process.env.NEXT_PUBLIC_DEV_API_BASE_URL : process.env.NEXT_PUBLIC_API_BASE_URL) ||
-    (preferDev ? urls.devApiBaseUrl : urls.prodApiBaseUrl) ||
-    "http://localhost:8080";
-
-  return base;
+  const configured = preferDev
+    ? process.env.NEXT_PUBLIC_DEV_API_BASE_URL?.trim()
+    : process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  return configured || null;
 }

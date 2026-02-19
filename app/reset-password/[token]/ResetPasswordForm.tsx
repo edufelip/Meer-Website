@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { passwordRules, validatePassword } from "../../../src/shared/validation/password";
 import { selectApiBase } from "../../../src/apiBase";
+import { loggedFetch } from "../../../src/shared/http/loggedFetch";
 import { getPasswordRuleErrorMessage, getPasswordRulesLabels } from "./passwordRulesText";
 
 type ResetPasswordFormProps = {
@@ -54,10 +55,18 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
     try {
       setSubmitting(true);
-      const res = await fetch(`${selectApiBase()}/auth/reset-password`, {
+      const baseUrl = selectApiBase();
+      if (!baseUrl) {
+        setError("API base URL nao configurada.");
+        return;
+      }
+
+      const res = await loggedFetch(`${baseUrl}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password })
+      }, {
+        label: "reset-password"
       });
 
       if (!res.ok) {

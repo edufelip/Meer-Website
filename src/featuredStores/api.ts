@@ -1,6 +1,7 @@
+import { selectApiBase } from "../apiBase";
+import { loggedFetch } from "../shared/http/loggedFetch";
 import type { FeaturedStore } from "./types";
 
-const DEFAULT_FEATURED_STORES_ENDPOINT = "https://api.guiabrecho.com.br/site/featured";
 const FEATURED_STORES_REVALIDATE_SECONDS = 300;
 
 type FeaturedStoresApiOptions = {
@@ -8,8 +9,12 @@ type FeaturedStoresApiOptions = {
 };
 
 function resolveFeaturedStoresEndpoint(): string {
-  const configured = process.env.SITE_FEATURED_STORES_ENDPOINT?.trim();
-  return configured || DEFAULT_FEATURED_STORES_ENDPOINT;
+  const selectedApiBase = selectApiBase();
+  if (!selectedApiBase) {
+    throw new Error("API base URL nao configurada.");
+  }
+
+  return `${selectedApiBase.replace(/\/+$/, "")}/site/featured`;
 }
 
 function normalizeStore(item: unknown): FeaturedStore | null {
@@ -35,7 +40,7 @@ export async function listFeaturedStores(
   options?: FeaturedStoresApiOptions
 ): Promise<FeaturedStore[]> {
   const endpoint = resolveFeaturedStoresEndpoint();
-  const response = await fetch(endpoint, {
+  const response = await loggedFetch(endpoint, {
     method: "GET",
     headers: {
       Accept: "application/json"
@@ -43,6 +48,8 @@ export async function listFeaturedStores(
     next: {
       revalidate: options?.revalidate ?? FEATURED_STORES_REVALIDATE_SECONDS
     }
+  }, {
+    label: "featured-stores"
   });
 
   if (!response.ok) {
