@@ -7,6 +7,12 @@ import {
   ADSENSE_CLIENT_ID,
   ADSENSE_HOME_CONTENTS_SLOT_ID
 } from "../config";
+import {
+  readAdsConsent,
+  writeAdsConsent,
+  type AdsConsentState,
+  type PersistedAdsConsent
+} from "../consent";
 
 declare global {
   interface Window {
@@ -19,28 +25,8 @@ type LandingContentsAdProps = {
 };
 
 type AdVisibilityState = "pending" | "visible" | "hidden";
-type AdsConsentState = "unknown" | "granted" | "denied";
-
-const ADS_CONSENT_STORAGE_KEY = "meer_ads_consent_v1";
 const NO_FILL_TIMEOUT_MS = 7000;
 const POLL_INTERVAL_MS = 250;
-
-function readStoredConsent(): AdsConsentState {
-  if (typeof window === "undefined") {
-    return "unknown";
-  }
-
-  const stored = window.localStorage.getItem(ADS_CONSENT_STORAGE_KEY);
-  return stored === "granted" || stored === "denied" ? stored : "unknown";
-}
-
-function persistConsent(consent: Exclude<AdsConsentState, "unknown">): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(ADS_CONSENT_STORAGE_KEY, consent);
-}
 
 export default function LandingContentsAd({ className }: LandingContentsAdProps) {
   const adClient = ADSENSE_CLIENT_ID;
@@ -59,7 +45,7 @@ export default function LandingContentsAd({ className }: LandingContentsAdProps)
       return;
     }
 
-    setConsent(readStoredConsent());
+    setConsent(readAdsConsent(window.localStorage));
   }, [adsEnabled]);
 
   useEffect(() => {
@@ -131,8 +117,8 @@ export default function LandingContentsAd({ className }: LandingContentsAdProps)
     };
   }, [adsEnabled, consent]);
 
-  const handleConsent = (nextConsent: Exclude<AdsConsentState, "unknown">) => {
-    persistConsent(nextConsent);
+  const handleConsent = (nextConsent: PersistedAdsConsent) => {
+    writeAdsConsent(window.localStorage, nextConsent);
     setConsent(nextConsent);
 
     if (nextConsent === "denied") {
@@ -149,25 +135,32 @@ export default function LandingContentsAd({ className }: LandingContentsAdProps)
   }
 
   if (consent === "unknown") {
+    const consentContainerClassName = [
+      className,
+      "rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--ink-soft)] shadow-[var(--shadow-soft)]"
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return (
-      <section className="rounded-2xl border border-amber-200/80 bg-white/85 p-4 text-sm text-neutral-700 shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
-        <p className="font-medium text-neutral-900">
+      <section className={consentContainerClassName}>
+        <p className="font-medium text-[var(--ink)]">
           Apoie o Guia Brechó com anúncios opcionais.
         </p>
-        <p className="mt-1 text-neutral-600">
+        <p className="mt-1 text-[var(--ink-soft)]">
           Só carregamos a rede de anúncios com a sua permissão.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-full border border-amber-300 bg-amber-500 px-4 py-2 font-semibold text-white transition hover:bg-amber-600"
+            className="inline-flex items-center justify-center rounded-full border border-[var(--accent-2)] bg-[var(--accent)] px-4 py-2 font-semibold text-white transition hover:bg-[var(--accent-2)]"
             onClick={() => handleConsent("granted")}
           >
             Permitir anúncios
           </button>
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-full border border-neutral-300 bg-white px-4 py-2 font-semibold text-neutral-700 transition hover:bg-neutral-50"
+            className="inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-2 font-semibold text-[var(--ink-soft)] transition hover:bg-[var(--surface)]"
             onClick={() => handleConsent("denied")}
           >
             Agora não
