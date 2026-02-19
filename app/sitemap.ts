@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
 import { listSiteGuideContents } from "../src/siteContents/api";
 import { getSiteContentsServerToken } from "../src/siteContents/serverAuth";
+import { listSiteStores } from "../src/storeDetails/api";
 import { webBaseUrl } from "../src/urls";
 
 const SITEMAP_PAGE_SIZE = 100;
+const STORE_SITEMAP_PAGE_SIZE = 100;
 const MAX_CONTENT_URLS = 5000;
+const MAX_STORE_URLS = 50000;
 
 const sitemapRevalidateSeconds = 60 * 60;
 export const revalidate = sitemapRevalidateSeconds;
@@ -54,6 +57,38 @@ async function getContentEntries(): Promise<MetadataRoute.Sitemap> {
   return entries;
 }
 
+async function getStoreEntries(): Promise<MetadataRoute.Sitemap> {
+  const entries: MetadataRoute.Sitemap = [];
+  let page = 0;
+  let hasNext = true;
+
+  while (hasNext && entries.length < MAX_STORE_URLS) {
+    const response = await listSiteStores({
+      page,
+      pageSize: STORE_SITEMAP_PAGE_SIZE,
+      revalidate: sitemapRevalidateSeconds
+    });
+
+    if (response.items.length === 0) break;
+
+    for (const store of response.items) {
+      entries.push({
+        url: toAbsoluteUrl(`/store/${store.id}`),
+        lastModified: toValidDateOrUndefined(store.updatedAt || store.createdAt || ""),
+        changeFrequency: "weekly",
+        priority: 0.8
+      });
+
+      if (entries.length >= MAX_STORE_URLS) break;
+    }
+
+    hasNext = response.hasNext;
+    page = response.page + 1;
+  }
+
+  return entries;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     {
@@ -78,10 +113,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   ];
 
-  try {
-    const contentEntries = await getContentEntries();
-    return [...staticEntries, ...contentEntries];
-  } catch {
-    return staticEntries;
-  }
+  const [contentEntriesResult, storeEntriesResult] = await Promise.allSettled([
+    getContentEntries(),
+    getStoreEntries()
+  ]);
+
+  const contentEntries =
+    contentEntriesResult.status === "fulfilled" ? contentEntriesResult.value : [];
+  const storeEntries =
+    storeEntriesResult.status === "fulfilled" ? storeEntriesResult.value : [];
+
+  return [...staticEntries, ...storeEntries, ...contentEntries];
 }

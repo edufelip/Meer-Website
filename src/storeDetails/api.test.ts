@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractApiErrorMessage, getSiteStoreById, SiteStoreDetailsApiError } from "./api";
+import { extractApiErrorMessage, getSiteStoreById, listSiteStores, SiteStoreDetailsApiError } from "./api";
 
 const ORIGINAL_FETCH = global.fetch;
 const ORIGINAL_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -83,4 +83,37 @@ test("getSiteStoreById maps backend errors", async (t) => {
       return true;
     }
   );
+});
+
+test("listSiteStores uses paginated stores endpoint", async (t) => {
+  t.after(restoreEnvironment);
+
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://example.com";
+  process.env.NEXT_PUBLIC_SITE_HOST = "guiabrecho.com.br";
+
+  const calls: Array<{ input: string | URL | Request; init?: RequestInit }> = [];
+
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ input, init });
+    return new Response(
+      JSON.stringify({
+        items: [
+          { id: "store-1", createdAt: "2024-01-01T00:00:00Z", updatedAt: "2024-01-02T00:00:00Z" },
+          { id: "store-2", createdAt: "2024-01-01T00:00:00Z", updatedAt: null }
+        ],
+        page: 0,
+        hasNext: true
+      }),
+      { status: 200 }
+    );
+  }) as typeof fetch;
+
+  const response = await listSiteStores({ page: 0, pageSize: 100, revalidate: 120 });
+
+  assert.equal(String(calls[0]?.input), "https://example.com/site/stores?page=0&pageSize=100");
+  assert.equal((calls[0]?.init as { next?: { revalidate?: number } })?.next?.revalidate, 120);
+  assert.equal(response.page, 0);
+  assert.equal(response.hasNext, true);
+  assert.equal(response.items.length, 2);
+  assert.equal(response.items[0]?.id, "store-1");
 });

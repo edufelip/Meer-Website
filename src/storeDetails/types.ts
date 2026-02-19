@@ -29,3 +29,15 @@ export type StoreDetails = {
   images: StoreDetailsImage[];
   createdAt: string | null;
 };
+
+export type StoreListItem = {
+  id: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type StoreListPageResponse = {
+  items: StoreListItem[];
+  page: number;
+  hasNext: boolean;
+};
