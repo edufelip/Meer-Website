@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import OpenInAppButton from "../../../src/OpenInAppButton";
+import { isContentDetailAdEligible } from "../../../src/ads/eligibility";
 import LandingContentsAd from "../../../src/ads/ui/LandingContentsAd";
 import JsonLdScript from "../../../src/seo/JsonLdScript";
 import {
@@ -174,7 +175,6 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
   if (!contentId) {
     return (
       <main className="page contents-page">
-        <LandingContentsAd />
         <section className="hero">
           <span className="eyebrow">Conteúdo</span>
           <h1>Conteúdo inválido.</h1>
@@ -221,7 +221,6 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
 
     return (
       <main className="page contents-page">
-        <LandingContentsAd />
         <section className="hero">
           <span className="eyebrow">Conteúdo</span>
           <h1>Não foi possível abrir este conteúdo.</h1>
@@ -271,10 +270,13 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
     preferred: preferredRelatedContents,
     fallback: fallbackRelatedContents
   });
+  const shouldRenderContentAd = isContentDetailAdEligible({
+    title: content.title,
+    description: content.description
+  });
 
   return (
     <main className="page contents-page">
-      <LandingContentsAd />
       <JsonLdScript
         id="content-breadcrumb-jsonld"
         data={buildContentBreadcrumbJsonLd(content)}
@@ -296,7 +298,6 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
             Ver mais conteúdos
           </Link>
         </div>
-        <LandingContentsAd className="mt-6" />
       </section>
 
       <section className="card content-detail-card">
@@ -325,6 +326,8 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
           </p>
         </div>
       </section>
+
+      {shouldRenderContentAd ? <LandingContentsAd className="mt-2" /> : null}
 
       {relatedContents.length > 0 ? (
         <section className="card related-contents-section">

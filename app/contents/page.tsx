@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { Route } from "next";
 import JsonLdScript from "../../src/seo/JsonLdScript";
+import { isContentsListingAdEligible } from "../../src/ads/eligibility";
 import LandingContentsAd from "../../src/ads/ui/LandingContentsAd";
 import { listSiteGuideContents, SiteContentsApiError } from "../../src/siteContents/api";
 import { formatDateShort } from "../../src/siteContents/format";
@@ -58,6 +59,11 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
     }
   }
 
+  const shouldRenderListingAd = isContentsListingAdEligible({
+    hasError: Boolean(error),
+    itemCount: response?.items.length ?? 0
+  });
+
   return (
     <main className="page contents-page">
       <JsonLdScript
@@ -80,7 +86,6 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
             Voltar para o início
           </Link>
         </div>
-        <LandingContentsAd className="mt-6" />
       </section>
 
       <section className="card contents-filters">
@@ -146,38 +151,41 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
       ) : null}
 
       {response && response.items.length > 0 ? (
-        <section className="contents-grid" aria-label="Lista de conteúdos">
-          {response.items.map((item) => (
-            <article key={item.id} className="card content-card">
-                <Link className="content-card-link" href={`/content/${item.id}` as Route}>
-                  <div className="content-card-image-wrap relative">
-                    {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={`Imagem do conteúdo ${item.title}`}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1080px) 50vw, 33vw"
-                        className="content-card-image"
-                        loading="lazy"
-                      />
-                    ) : (
-                    <div className="content-card-image content-card-image-fallback">Sem imagem</div>
-                  )}
-                </div>
-                <div className="content-card-body">
-                  <p className="content-card-store">{item.thriftStoreName || "Comunidade"}</p>
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                  <div className="content-card-meta">
-                    <span>{formatDateShort(item.createdAt)}</span>
-                    <span>{item.likeCount} curtidas</span>
-                    <span>{item.commentCount} comentários</span>
+        <>
+          <section className="contents-grid" aria-label="Lista de conteúdos">
+            {response.items.map((item) => (
+              <article key={item.id} className="card content-card">
+                  <Link className="content-card-link" href={`/content/${item.id}` as Route}>
+                    <div className="content-card-image-wrap relative">
+                      {item.imageUrl ? (
+                        <Image
+                          src={item.imageUrl}
+                          alt={`Imagem do conteúdo ${item.title}`}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1080px) 50vw, 33vw"
+                          className="content-card-image"
+                          loading="lazy"
+                        />
+                      ) : (
+                      <div className="content-card-image content-card-image-fallback">Sem imagem</div>
+                    )}
                   </div>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </section>
+                  <div className="content-card-body">
+                    <p className="content-card-store">{item.thriftStoreName || "Comunidade"}</p>
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                    <div className="content-card-meta">
+                      <span>{formatDateShort(item.createdAt)}</span>
+                      <span>{item.likeCount} curtidas</span>
+                      <span>{item.commentCount} comentários</span>
+                    </div>
+                  </div>
+                </Link>
+              </article>
+            ))}
+          </section>
+          {shouldRenderListingAd ? <LandingContentsAd className="mt-2" /> : null}
+        </>
       ) : null}
 
       {response ? (

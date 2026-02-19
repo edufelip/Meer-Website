@@ -177,18 +177,6 @@ export default function LandingContentsAd({ className }: LandingContentsAdProps)
     );
   }
 
-  const wrapperStyle = visibility === "pending"
-    ? {
-      position: "fixed" as const,
-      left: "-9999px",
-      top: "-9999px",
-      width: "320px",
-      height: "56px",
-      opacity: 0,
-      pointerEvents: "none" as const
-    }
-    : undefined;
-
   return (
     <>
       <Script
@@ -203,7 +191,7 @@ export default function LandingContentsAd({ className }: LandingContentsAdProps)
           setVisibility("hidden");
         }}
       />
-      <div className={visibility === "visible" ? className : undefined} style={wrapperStyle}>
+      <div className={className}>
         <ins
           ref={adRef}
           className="adsbygoogle block w-full overflow-hidden"
