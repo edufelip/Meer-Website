@@ -110,6 +110,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: toAbsoluteUrl("/terms-eula"),
       changeFrequency: "yearly",
       priority: 0.2
+    },
+    {
+      url: toAbsoluteUrl("/support"),
+      changeFrequency: "yearly",
+      priority: 0.2
     }
   ];
 

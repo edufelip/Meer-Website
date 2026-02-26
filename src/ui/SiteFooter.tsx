@@ -10,6 +10,7 @@ const platformLinks = [
 const supportLinks = [
   { href: "/privacy-policy", label: "Política de Privacidade" },
   { href: "/terms-eula", label: "Terms & EULA" },
+  { href: "/support", label: "Suporte" },
   { href: "/contents", label: "Central de Conteúdos" }
 ];
 
