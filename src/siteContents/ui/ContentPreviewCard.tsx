@@ -1,8 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import { formatDateShort } from "../format";
 import type { GuideContentDto } from "../types";
+import { trackEvent } from "../../analytics/mixpanel";
 
 type ContentPreviewCardProps = {
   item: GuideContentDto;
@@ -13,9 +16,13 @@ export default function ContentPreviewCard({
   item,
   showLikeCount = false
 }: ContentPreviewCardProps) {
+  const handleClick = () => {
+    trackEvent("Content Clicked", { contentId: item.id, title: item.title });
+  };
+
   return (
     <article className="surface-card content-card overflow-hidden">
-      <Link className="content-card-link" href={`/content/${item.id}` as Route}>
+      <Link className="content-card-link" href={`/content/${item.id}` as Route} onClick={handleClick}>
         <div className="content-card-image-wrap relative">
           {item.imageUrl ? (
             <Image

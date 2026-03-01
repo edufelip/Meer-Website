@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { THEME_STORAGE_KEY, applyTheme, normalizeTheme, type ThemePreference } from "./theme";
+import { trackEvent } from "../analytics/mixpanel";
 
 type ThemeToggleButtonProps = {
   className?: string;
@@ -30,6 +31,7 @@ export default function ThemeToggleButton({ className }: ThemeToggleButtonProps)
       const updatedTheme = nextTheme(currentTheme);
       applyTheme(updatedTheme);
       window.localStorage.setItem(THEME_STORAGE_KEY, updatedTheme);
+      trackEvent("Theme Toggled", { theme: updatedTheme });
       return updatedTheme;
     });
   };

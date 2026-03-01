@@ -1,6 +1,7 @@
 "use client";
 
 import { openInApp } from "./openInApp";
+import { trackEvent } from "./analytics/mixpanel";
 
 type OpenInAppButtonProps = {
   deepLink: string;
@@ -10,6 +11,7 @@ type OpenInAppButtonProps = {
 
 export default function OpenInAppButton({ deepLink, className, children }: OpenInAppButtonProps) {
   const handleOpenApp = () => {
+    trackEvent("Open App Clicked", { deepLink });
     openInApp(deepLink);
   };
 

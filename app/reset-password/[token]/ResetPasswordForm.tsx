@@ -5,6 +5,7 @@ import { passwordRules, validatePassword } from "../../../src/shared/validation/
 import { selectApiBase } from "../../../src/apiBase";
 import { loggedFetch } from "../../../src/shared/http/loggedFetch";
 import { getPasswordRuleErrorMessage, getPasswordRulesLabels } from "./passwordRulesText";
+import { trackEvent } from "../../../src/analytics/mixpanel";
 
 type ResetPasswordFormProps = {
   token: string;
@@ -54,6 +55,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     }
 
     try {
+      trackEvent("Password Reset Attempted");
       setSubmitting(true);
       const baseUrl = selectApiBase();
       if (!baseUrl) {
@@ -73,12 +75,14 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         const payload = await res.json().catch(() => ({}));
         const message = typeof payload?.message === "string" ? payload.message : "Nao foi possivel redefinir a senha.";
         setError(message);
+        trackEvent("Password Reset Failed", { reason: message });
         return;
       }
 
       setSuccess("Senha atualizada. Voce ja pode entrar no app.");
       setPassword("");
       setConfirm("");
+      trackEvent("Password Reset Succeeded");
     } catch {
       setError("Nao foi possivel redefinir a senha.");
     } finally {

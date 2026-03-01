@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import type { FeaturedStore } from "../types";
+import { trackEvent } from "../../analytics/mixpanel";
 
 type FeaturedStoresSectionProps = {
   stores: FeaturedStore[];
@@ -28,7 +31,11 @@ export default function FeaturedStoresSection({ stores }: FeaturedStoresSectionP
               key={store.id}
               className="group min-w-[260px] max-w-[260px] snap-start overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)]"
             >
-              <Link href={`/store/${store.id}` as Route} className="block">
+              <Link 
+                href={`/store/${store.id}` as Route} 
+                className="block"
+                onClick={() => trackEvent("Featured Store Clicked", { storeId: store.id, storeName: store.name })}
+              >
                 <div className="relative aspect-square overflow-hidden bg-[var(--surface-muted)]">
                   <Image
                     src={store.coverImageUrl}

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Lexend, Space_Grotesk } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import FirebaseAnalyticsBootstrap from "../src/firebase/FirebaseAnalyticsBootstrap";
+import MixpanelBootstrap from "../src/analytics/MixpanelBootstrap";
 import { androidPackage, appName, iosAppStoreId, webBaseUrl } from "../src/urls";
 import { THEME_STORAGE_KEY } from "../src/theme/theme";
 
@@ -78,6 +79,7 @@ export default function RootLayout({
       </head>
       <body>
         <FirebaseAnalyticsBootstrap />
+        <MixpanelBootstrap />
         {children}
         <SpeedInsights />
       </body>
