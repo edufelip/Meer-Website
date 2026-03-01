@@ -1,8 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import { formatDateShort } from "../format";
 import type { GuideContentDto } from "../types";
+import { trackEvent } from "../../analytics/mixpanel";
 
 export type FeaturedContentState =
   | { items: GuideContentDto[]; blockedByAuth: false }
@@ -42,7 +45,11 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
         <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           {primary ? (
             <article className="group overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)]">
-              <Link href={`/content/${primary.id}` as Route} className="grid h-full gap-4 md:grid-cols-2">
+              <Link 
+                href={`/content/${primary.id}` as Route} 
+                className="grid h-full gap-4 md:grid-cols-2"
+                onClick={() => trackEvent("Featured Content Clicked", { contentId: primary.id, title: primary.title, type: "primary" })}
+              >
                 <div className="relative min-h-[260px] overflow-hidden bg-[var(--surface)]">
                   {primary.imageUrl ? (
                     <Image
@@ -82,7 +89,11 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
           <div className="grid gap-4">
             {secondary.slice(0, 2).map((content) => (
               <article key={content.id} className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-                <Link href={`/content/${content.id}` as Route} className="grid h-full gap-3 sm:grid-cols-[120px_minmax(0,1fr)]">
+                <Link 
+                  href={`/content/${content.id}` as Route} 
+                  className="grid h-full gap-3 sm:grid-cols-[120px_minmax(0,1fr)]"
+                  onClick={() => trackEvent("Featured Content Clicked", { contentId: content.id, title: content.title, type: "secondary" })}
+                >
                   <div className="relative min-h-[120px] bg-[var(--surface-muted)]">
                     {content.imageUrl ? (
                       <Image
@@ -129,6 +140,7 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
         <Link
           href="/contents"
           className="inline-flex w-fit items-center justify-center rounded-full border border-[var(--border)] bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[var(--accent-2)]"
+          onClick={() => trackEvent("View More Contents Clicked")}
         >
           Ver mais
         </Link>

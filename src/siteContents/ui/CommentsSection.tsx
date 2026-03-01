@@ -1,7 +1,10 @@
+"use client";
+
 import type { Route } from "next";
 import Link from "next/link";
 import { formatDateTime } from "../format";
 import type { GuideContentCommentDto, PageResponse } from "../types";
+import { trackEvent } from "../../analytics/mixpanel";
 
 type CommentsSectionProps = {
   comments: PageResponse<GuideContentCommentDto> | null;
@@ -40,7 +43,11 @@ export default function CommentsSection({
       {comments ? (
         <nav className="contents-pagination mt-6" aria-label="Paginação de comentários">
           {comments.page > 0 ? (
-            <Link className="button secondary" href={buildPageHref(comments.page - 1)}>
+            <Link 
+              className="button secondary" 
+              href={buildPageHref(comments.page - 1)}
+              onClick={() => trackEvent("Comments Paginated", { direction: "previous", page: comments.page - 1 })}
+            >
               Comentários anteriores
             </Link>
           ) : (
@@ -52,7 +59,11 @@ export default function CommentsSection({
           <p className="contents-pagination-label">Página {comments.page + 1}</p>
 
           {comments.hasNext ? (
-            <Link className="button" href={buildPageHref(comments.page + 1)}>
+            <Link 
+              className="button" 
+              href={buildPageHref(comments.page + 1)}
+              onClick={() => trackEvent("Comments Paginated", { direction: "next", page: comments.page + 1 })}
+            >
               Próximos comentários
             </Link>
           ) : (

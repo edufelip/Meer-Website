@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { initMixpanel, trackEvent } from "./mixpanel";
 
 let hasBootstrappedAnalytics = false;
 
-export default function MixpanelBootstrap() {
+function MixpanelTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -36,4 +36,12 @@ export default function MixpanelBootstrap() {
   }, [pathname, searchParams]);
 
   return null;
+}
+
+export default function MixpanelBootstrap() {
+  return (
+    <Suspense fallback={null}>
+      <MixpanelTracker />
+    </Suspense>
+  );
 }
