@@ -314,7 +314,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
         <h1 className="mt-3 text-4xl font-semibold leading-tight text-[var(--ink)] md:text-5xl">
           {content.title}
         </h1>
-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--ink-soft)] md:text-lg">
+        <p className="mt-4 max-w-3xl whitespace-pre-wrap text-base leading-relaxed text-[var(--ink-soft)] md:text-lg">
           {content.description}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
