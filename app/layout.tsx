@@ -1,25 +1,25 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Lexend, Space_Grotesk } from "next/font/google";
+import { Playfair_Display, Inter } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import FirebaseAnalyticsBootstrap from "../src/firebase/FirebaseAnalyticsBootstrap";
 import MixpanelBootstrap from "../src/analytics/MixpanelBootstrap";
 import { androidPackage, appName, iosAppStoreId, webBaseUrl } from "../src/urls";
 import { THEME_STORAGE_KEY } from "../src/theme/theme";
 
-const display = Space_Grotesk({
+const display = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-display"
+  variable: "--font-display",
 });
 
-const body = Lexend({
+const sans = Inter({
   subsets: ["latin"],
-  variable: "--font-body"
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(webBaseUrl),
-  title: "Guia Brechó",
+  title: "Guia Brechó - Garimpe com Propósito",
   description: "Guia Brechó. Descubra brechós, conteúdos e dicas de consumo consciente.",
   alternates: {
     canonical: "/"
@@ -59,12 +59,12 @@ const themeInitScript = `
   (() => {
     try {
       const stored = window.localStorage.getItem("${THEME_STORAGE_KEY}");
-      const theme = stored === "dark" ? "dark" : "light";
+      const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      const theme = stored ? (stored === "dark" ? "dark" : "light") : systemPreference;
       const root = document.documentElement;
       root.classList.toggle("dark", theme === "dark");
-      root.style.colorScheme = theme;
     } catch {
-      document.documentElement.style.colorScheme = "light";
+      // fallback
     }
   })();
 `;
@@ -73,11 +73,12 @@ export default function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${display.variable} ${sans.variable}`} suppressHydrationWarning>
       <head>
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
         <script id="theme-init" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body>
+      <body className="bg-background-light dark:bg-background-dark text-stone-800 dark:text-stone-200 font-sans transition-colors duration-300">
         <FirebaseAnalyticsBootstrap />
         <MixpanelBootstrap />
         {children}

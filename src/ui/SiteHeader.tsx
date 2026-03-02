@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
@@ -23,10 +22,8 @@ const navItems: HeaderNavItem[] = [
   { kind: "section", sectionId: "destaques", label: "Destaques" }
 ];
 
-const desktopNavItemClasses =
-  "rounded-full px-3 py-2 text-sm font-semibold text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--accent)]";
-const mobileNavItemClasses =
-  "rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--ink)]";
+const desktopNavItemClasses = "text-stone-600 dark:text-stone-300 hover:text-primary dark:hover:text-primary transition-colors font-medium";
+const mobileNavItemClasses = "block px-4 py-3 text-stone-600 dark:text-stone-300 font-medium hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors";
 
 export default function SiteHeader() {
   const router = useRouter();
@@ -63,33 +60,20 @@ export default function SiteHeader() {
   };
 
   return (
-    <header
-      data-site-header
-      className="fixed inset-x-0 top-0 z-40 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md"
-    >
-      <div className="section-shell flex h-20 items-center justify-between gap-3">
-        <Link href="/" className="group inline-flex items-center gap-3">
-          <span className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)]">
-            <Image
-              src="/assets/images/app-icon.png"
-              alt="Guia Brechó logo"
-              width={44}
-              height={44}
-              priority
-            />
-          </span>
-          <span>
-            <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
-              Guia Brechó
-            </span>
-            <span className="hidden text-sm font-semibold text-[var(--ink)] sm:block">
-              Seu radar de achados conscientes
-            </span>
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <nav className="hidden items-center gap-4 md:flex">
+    <nav className="sticky top-0 z-50 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-700">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-20">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
+              <span className="material-icons-outlined">storefront</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display font-bold text-xl text-stone-900 dark:text-white leading-tight">Guia Brechó</span>
+              <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">Radar de achados</span>
+            </div>
+          </Link>
+          
+          <div className="hidden md:flex space-x-8 items-center">
             {navItems.map((item) =>
               item.kind === "route" ? (
                 <Link key={item.href} href={item.href} className={desktopNavItemClasses}>
@@ -106,33 +90,35 @@ export default function SiteHeader() {
                 </button>
               )
             )}
-
+            
             <a
               href={storeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--accent-2)]"
+              className="bg-primary hover:bg-yellow-600 text-white px-6 py-2.5 rounded-full font-medium transition-transform transform hover:-translate-y-0.5 shadow-lg shadow-primary/30"
             >
               Baixar App
             </a>
-          </nav>
+            
+            <ThemeToggleButton />
+          </div>
 
-          <ThemeToggleButton className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]" />
-          <button
-            type="button"
-            aria-expanded={isMobileMenuOpen}
-            aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-            onClick={() => setIsMobileMenuOpen((currentState) => !currentState)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-lg text-[var(--ink)] shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:hidden"
-          >
-            <span aria-hidden>{isMobileMenuOpen ? "✕" : "☰"}</span>
-          </button>
+          <div className="md:hidden flex items-center">
+            <ThemeToggleButton className="p-2 mr-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-stone-600 dark:text-stone-300" />
+            <button 
+              className="text-stone-600 dark:text-stone-300 hover:text-primary"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+            >
+              <span className="material-icons-outlined text-3xl">{isMobileMenuOpen ? "close" : "menu"}</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {isMobileMenuOpen ? (
-        <div className="border-t border-[var(--border)] bg-[var(--surface)]/95 md:hidden">
-          <nav className="section-shell grid gap-2 py-4">
+        <div className="md:hidden bg-surface-light dark:bg-surface-dark border-t border-stone-200 dark:border-stone-700 p-4 absolute w-full shadow-xl">
+          <div className="flex flex-col space-y-2">
             {navItems.map((item) =>
               item.kind === "route" ? (
                 <Link
@@ -148,7 +134,7 @@ export default function SiteHeader() {
                   key={item.sectionId}
                   type="button"
                   onClick={() => navigateToSection(item.sectionId, true)}
-                  className={mobileNavItemClasses}
+                  className={`text-left ${mobileNavItemClasses}`}
                 >
                   {item.label}
                 </button>
@@ -159,13 +145,13 @@ export default function SiteHeader() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="mt-1 inline-flex items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--accent-2)]"
+              className="mt-4 text-center bg-primary hover:bg-yellow-600 text-white px-6 py-3 rounded-xl font-medium transition-colors"
             >
               Baixar App
             </a>
-          </nav>
+          </div>
         </div>
       ) : null}
-    </header>
+    </nav>
   );
 }

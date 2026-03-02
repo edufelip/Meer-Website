@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { THEME_STORAGE_KEY, applyTheme, normalizeTheme, type ThemePreference } from "./theme";
+import { THEME_STORAGE_KEY, applyTheme, type ThemePreference } from "./theme";
 import { trackEvent } from "../analytics/mixpanel";
 
 type ThemeToggleButtonProps = {
@@ -12,18 +12,17 @@ function nextTheme(theme: ThemePreference): ThemePreference {
   return theme === "light" ? "dark" : "light";
 }
 
-const defaultButtonClassName =
-  "inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]";
+const defaultButtonClassName = "p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-stone-600 dark:text-stone-300";
 
 export default function ThemeToggleButton({ className }: ThemeToggleButtonProps) {
   const [theme, setTheme] = useState<ThemePreference>("light");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const stored = normalizeTheme(window.localStorage.getItem(THEME_STORAGE_KEY));
-    setTheme(stored);
-    applyTheme(stored);
-    setMounted(true);
+    const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY) as ThemePreference | null;
+    const initialTheme = stored || systemPreference;
+    setTheme(initialTheme);
+    applyTheme(initialTheme);
   }, []);
 
   const handleToggle = () => {
@@ -47,9 +46,8 @@ export default function ThemeToggleButton({ className }: ThemeToggleButtonProps)
       onClick={handleToggle}
       className={resolvedClassName}
     >
-      <span aria-hidden className="text-lg leading-none">
-        {mounted && theme === "dark" ? "☀" : "☾"}
-      </span>
+      <span aria-hidden className="material-icons-outlined dark:hidden">dark_mode</span>
+      <span aria-hidden className="material-icons-outlined hidden dark:block">light_mode</span>
     </button>
   );
 }

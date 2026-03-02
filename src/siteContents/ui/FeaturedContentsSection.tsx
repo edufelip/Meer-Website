@@ -15,7 +15,7 @@ type FeaturedContentsSectionProps = {
   featured: FeaturedContentState;
 };
 
-const MAX_DESCRIPTION_PREVIEW_LENGTH = 220;
+const MAX_DESCRIPTION_PREVIEW_LENGTH = 180;
 
 function truncatePreview(text: string, maxLength = MAX_DESCRIPTION_PREVIEW_LENGTH): string {
   const normalized = text.replace(/\s+/g, " ").trim();
@@ -27,123 +27,95 @@ function truncatePreview(text: string, maxLength = MAX_DESCRIPTION_PREVIEW_LENGT
 }
 
 export default function FeaturedContentsSection({ featured }: FeaturedContentsSectionProps) {
-  const [primary, ...secondary] = featured.items;
+  const displayItems = featured.items.slice(0, 2);
 
   return (
-    <section className="surface-card p-6 md:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
-        Conteúdos
-      </p>
-      <h2 className="mt-2 text-3xl font-semibold leading-tight text-[var(--ink)] md:text-5xl">
-        Dicas fresquinhas para seu próximo garimpo.
-      </h2>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--ink-soft)] md:text-base">
-        Veja publicações recentes da comunidade e descubra novos brechós e tendências.
-      </p>
+    <section className="py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-12">
+          <span className="text-primary font-bold tracking-wider text-xs uppercase mb-2 block">Conteúdos</span>
+          <h2 className="font-display text-4xl lg:text-5xl font-bold text-stone-900 dark:text-white mb-4">
+            Dicas fresquinhas para seu <br className="hidden md:block" />próximo garimpo.
+          </h2>
+          <p className="text-stone-600 dark:text-stone-400 max-w-2xl">
+            Veja publicações recentes da comunidade e descubra novos brechós e tendências.
+          </p>
+        </div>
 
-      {featured.items.length > 0 ? (
-        <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-          {primary ? (
-            <article className="group overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)]">
-              <Link 
-                href={`/content/${primary.id}` as Route} 
-                className="grid h-full gap-4 md:grid-cols-2"
-                onClick={() => trackEvent("Featured Content Clicked", { contentId: primary.id, title: primary.title, type: "primary" })}
-              >
-                <div className="relative min-h-[260px] overflow-hidden bg-[var(--surface)]">
-                  {primary.imageUrl ? (
-                    <Image
-                      src={primary.imageUrl}
-                      alt={`Imagem de ${primary.title}`}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      quality={70}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-[var(--accent-3)]">
-                      Sem imagem
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-3 p-6">
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-3)]">
-                    {primary.thriftStoreName || "Comunidade"}
-                  </p>
-                  <h3 className="text-2xl font-semibold leading-tight text-[var(--ink)]">
-                    {primary.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                    {truncatePreview(primary.description, 260)}
-                  </p>
-                  <p className="mt-auto text-xs text-[var(--ink-muted)]">
-                    {formatDateShort(primary.createdAt)} • {primary.commentCount} comentários
-                  </p>
-                </div>
-              </Link>
-            </article>
-          ) : null}
-
-          <div className="grid gap-4">
-            {secondary.slice(0, 2).map((content) => (
-              <article key={content.id} className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+        {featured.items.length > 0 ? (
+          <div className="grid lg:grid-cols-2 gap-8">
+            {displayItems.map((content, index) => (
+              <article key={content.id} className="flex flex-col md:flex-row bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden border border-stone-100 dark:border-stone-800 shadow-sm hover:shadow-xl transition-all duration-300 h-full group">
                 <Link 
-                  href={`/content/${content.id}` as Route} 
-                  className="grid h-full gap-3 sm:grid-cols-[120px_minmax(0,1fr)]"
-                  onClick={() => trackEvent("Featured Content Clicked", { contentId: content.id, title: content.title, type: "secondary" })}
+                  href={`/content/${content.id}` as Route}
+                  className="flex flex-col md:flex-row w-full h-full"
+                  onClick={() => trackEvent("Featured Content Clicked", { contentId: content.id, title: content.title })}
                 >
-                  <div className="relative min-h-[120px] bg-[var(--surface-muted)]">
+                  <div className="md:w-2/5 h-64 md:h-auto bg-stone-200 relative overflow-hidden">
                     {content.imageUrl ? (
                       <Image
                         src={content.imageUrl}
                         alt={`Imagem de ${content.title}`}
                         fill
-                        sizes="120px"
-                        quality={65}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, 40vw"
+                        quality={70}
+                        className="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-[var(--accent-3)]">
-                        Sem imagem
-                      </div>
+                      <div className="flex h-full items-center justify-center text-sm text-stone-500">Sem imagem</div>
                     )}
                   </div>
-
-                  <div className="flex min-h-[120px] flex-col gap-2 p-4">
-                    <h3 className="text-base font-semibold leading-snug text-[var(--ink)]">
-                      {content.title}
-                    </h3>
-                    <p className="text-xs leading-relaxed text-[var(--ink-soft)]">
-                      {truncatePreview(content.description, 120)}
-                    </p>
-                    <p className="mt-auto text-xs text-[var(--ink-muted)]">
-                      {formatDateShort(content.createdAt)}
-                    </p>
+                  <div className="p-8 md:w-3/5 flex flex-col justify-between">
+                    <div>
+                      <span className={`text-xs font-bold mb-2 block uppercase tracking-wider ${index === 0 ? 'text-primary' : 'text-secondary dark:text-green-400'}`}>
+                        {content.thriftStoreName || "Guia Brechó"}
+                      </span>
+                      {index === 0 && (
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="material-icons-outlined text-primary text-sm">star</span>
+                          <h3 className="font-display font-bold text-xl text-stone-900 dark:text-white leading-tight">{content.title}</h3>
+                        </div>
+                      )}
+                      {index !== 0 && (
+                        <h3 className="font-display font-bold text-xl text-stone-900 dark:text-white leading-tight mb-3">{content.title}</h3>
+                      )}
+                      <p className="text-stone-600 dark:text-stone-400 text-sm line-clamp-4 mb-4">
+                        {truncatePreview(content.description)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-stone-200 dark:border-stone-700 pt-4 mt-4">
+                      <span className="text-xs text-stone-400">{formatDateShort(content.createdAt)}</span>
+                      {index === 0 ? (
+                        <span className="text-xs text-stone-400">{content.commentCount} comentários</span>
+                      ) : (
+                        <span className="text-xs font-bold text-primary hover:text-yellow-600 flex items-center">
+                          Ler mais <span className="material-icons-outlined text-sm ml-1">arrow_forward</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Link>
               </article>
             ))}
           </div>
-        </div>
-      ) : (
-        <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-5 text-sm text-[var(--ink-soft)]">
-          {featured.blockedByAuth
-            ? "A API de conteúdos ainda está protegida por autenticação (401). Assim que o backend liberar acesso público, esta seção será preenchida automaticamente."
-            : "Não foi possível carregar os conteúdos agora. Acesse a listagem completa para tentar novamente."}
-        </div>
-      )}
+        ) : (
+          <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-surface-light dark:bg-surface-dark p-8 text-sm text-stone-600 dark:text-stone-400">
+            {featured.blockedByAuth
+              ? "A API de conteúdos ainda está protegida por autenticação (401). Assim que o backend liberar acesso público, esta seção será preenchida automaticamente."
+              : "Não foi possível carregar os conteúdos agora. Acesse a listagem completa para tentar novamente."}
+          </div>
+        )}
 
-      <div className="mt-6 flex justify-end">
-        <Link
-          href="/contents"
-          className="inline-flex w-fit items-center justify-center rounded-full border border-[var(--border)] bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[var(--accent-2)]"
-          onClick={() => trackEvent("View More Contents Clicked")}
-        >
-          Ver mais
-        </Link>
+        <div className="mt-12 text-center">
+          <Link
+            href="/contents"
+            className="inline-block bg-primary hover:bg-yellow-600 text-white px-8 py-3 rounded-full font-medium transition-transform transform hover:-translate-y-1 shadow-lg shadow-primary/30"
+            onClick={() => trackEvent("View More Contents Clicked")}
+          >
+            Ver mais conteúdos
+          </Link>
+        </div>
       </div>
     </section>
   );
