@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { Metadata, Route } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import OpenInAppButton from "../../../src/OpenInAppButton";
 import { isContentDetailAdEligible } from "../../../src/ads/eligibility";
@@ -100,12 +100,6 @@ function metadataRobots(index: boolean): NonNullable<Metadata["robots"]> {
     index,
     follow: true
   };
-}
-
-function buildCommentsHref(contentId: number, commentsPage: number): Route {
-  const params = new URLSearchParams();
-  params.set("commentsPage", String(Math.max(0, commentsPage)));
-  return `/content/${contentId}?${params.toString()}` as Route;
 }
 
 function ContentStateView({ title, message, deepLink }: ContentStateViewProps) {
@@ -366,9 +360,9 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
       <RelatedContentsSection items={relatedContents} />
 
       <CommentsSection
+        contentId={content.id}
         comments={comments}
         commentsErrorMessage={commentsError ? buildCommentsErrorMessage(commentsError) : null}
-        buildPageHref={(page) => buildCommentsHref(content.id, page)}
       />
     </PageShell>
   );

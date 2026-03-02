@@ -7,16 +7,22 @@ import type { GuideContentCommentDto, PageResponse } from "../types";
 import { trackEvent } from "../../analytics/mixpanel";
 
 type CommentsSectionProps = {
+  contentId: number;
   comments: PageResponse<GuideContentCommentDto> | null;
   commentsErrorMessage?: string | null;
-  buildPageHref: (page: number) => Route;
 };
 
 export default function CommentsSection({
+  contentId,
   comments,
-  commentsErrorMessage,
-  buildPageHref
+  commentsErrorMessage
 }: CommentsSectionProps) {
+  const buildPageHref = (page: number): Route => {
+    const params = new URLSearchParams();
+    params.set("commentsPage", String(Math.max(0, page)));
+    return `/content/${contentId}?${params.toString()}` as Route;
+  };
+
   return (
     <section className="surface-card comments-section p-6">
       <h2>Comentários</h2>
