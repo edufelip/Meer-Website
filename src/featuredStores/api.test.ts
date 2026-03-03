@@ -3,11 +3,13 @@ import test from "node:test";
 import { listFeaturedStores } from "./api";
 
 const ORIGINAL_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const ORIGINAL_DEV_API_BASE = process.env.NEXT_PUBLIC_DEV_API_BASE_URL;
 const ORIGINAL_SITE_HOST = process.env.NEXT_PUBLIC_SITE_HOST;
 const ORIGINAL_FETCH = global.fetch;
 
 function restoreEnvironment() {
   process.env.NEXT_PUBLIC_API_BASE_URL = ORIGINAL_API_BASE;
+  process.env.NEXT_PUBLIC_DEV_API_BASE_URL = ORIGINAL_DEV_API_BASE;
   process.env.NEXT_PUBLIC_SITE_HOST = ORIGINAL_SITE_HOST;
   global.fetch = ORIGINAL_FETCH;
 }
@@ -96,13 +98,19 @@ test("listFeaturedStores throws on non-ok response", async (t) => {
   );
 });
 
-test("listFeaturedStores throws when API base is not configured", async (t) => {
+test("listFeaturedStores uses explicit hostname when env is not configured", async (t) => {
   t.after(restoreEnvironment);
   delete process.env.NEXT_PUBLIC_API_BASE_URL;
-  process.env.NEXT_PUBLIC_SITE_HOST = "guiabrecho.com.br";
+  delete process.env.NEXT_PUBLIC_DEV_API_BASE_URL;
+  delete process.env.NEXT_PUBLIC_SITE_HOST;
 
-  await assert.rejects(
-    () => listFeaturedStores(),
-    /API base URL nao configurada\./
-  );
+  const calls: Array<{ input: string | URL | Request; init?: RequestInit }> = [];
+  global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ input, init });
+    return new Response("[]", { status: 200 });
+  }) as typeof fetch;
+
+  await listFeaturedStores({ hostname: "example.com" });
+
+  assert.equal(String(calls[0]?.input), "https://api.example.com/site/featured");
 });
