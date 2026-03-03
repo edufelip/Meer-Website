@@ -20,3 +20,16 @@ html.dark ::-webkit-scrollbar-thumb {
 html.dark ::-webkit-scrollbar-thumb:hover {
     background: #6B7280;
 }
+
+@layer components {
+  .markdown-body {
+    @apply prose prose-stone dark:prose-invert max-w-none 
+    prose-p:mb-8 prose-p:leading-relaxed prose-p:text-lg 
+    prose-headings:font-display prose-headings:font-bold prose-headings:text-stone-900 dark:prose-headings:text-white
+    prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6
+    prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+    prose-blockquote:border-l-4 prose-blockquote:border-secondary prose-blockquote:pl-6 prose-blockquote:my-10 prose-blockquote:italic prose-blockquote:font-display prose-blockquote:text-2xl prose-blockquote:text-secondary dark:prose-blockquote:text-green-400 prose-blockquote:bg-secondary/5 dark:prose-blockquote:bg-secondary/10 prose-blockquote:py-6 prose-blockquote:pr-4 prose-blockquote:rounded-r-xl
+    prose-li:my-2
+    prose-strong:font-bold prose-strong:text-stone-900 dark:prose-strong:text-white;
+  }
+}

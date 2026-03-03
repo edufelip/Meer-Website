@@ -1,0 +1,2871 @@
+diff --git a/app/content/[id]/page.tsx b/app/content/[id]/page.tsx
+index 360ceeb..7ffc0ad 100644
+--- a/app/content/[id]/page.tsx
++++ b/app/content/[id]/page.tsx
+@@ -1,17 +1,15 @@
+ import Image from "next/image";
+-import type { Metadata, Route } from "next";
++import type { Metadata } from "next";
+ import Link from "next/link";
+-import OpenInAppButton from "../../../src/OpenInAppButton";
+ import { isContentDetailAdEligible } from "../../../src/ads/eligibility";
+ import LandingContentsAd from "../../../src/ads/ui/LandingContentsAd";
+ import JsonLdScript from "../../../src/seo/JsonLdScript";
+ import {
+   getSiteGuideContentById,
+   listSiteGuideContents,
+-  listSiteGuideContentComments,
+   SiteContentsApiError
+ } from "../../../src/siteContents/api";
+-import { formatDateTime } from "../../../src/siteContents/format";
++import { formatDateShort } from "../../../src/siteContents/format";
+ import {
+   buildContentDescription,
+   parseAbsoluteUrlOrUndefined,
+@@ -25,9 +23,9 @@ import {
+   buildContentBreadcrumbJsonLd
+ } from "../../../src/siteContents/structuredData";
+ import type { GuideContentDto, PageResponse } from "../../../src/siteContents/types";
+-import CommentsSection from "../../../src/siteContents/ui/CommentsSection";
+ import RelatedContentsSection from "../../../src/siteContents/ui/RelatedContentsSection";
+ import PageShell from "../../../src/ui/PageShell";
++import ReactMarkdown from "react-markdown";
+ 
+ type ContentPageProps = {
+   params: { id: string };
+@@ -40,9 +38,8 @@ type ContentStateViewProps = {
+   deepLink?: string;
+ };
+ 
+-const COMMENTS_PAGE_SIZE = 10;
+ const CONTENTS_REVALIDATE_SECONDS = 120;
+-const RELATED_CONTENTS_PAGE_SIZE = 8;
++const RELATED_CONTENTS_PAGE_SIZE = 4;
+ 
+ function safeDecode(value: string): string | null {
+   try {
+@@ -77,18 +74,6 @@ function buildContentErrorMessage(error: SiteContentsApiError): string {
+   return error.message || "Não foi possível carregar o conteúdo.";
+ }
+ 
+-function buildCommentsErrorMessage(error: SiteContentsApiError): string {
+-  if (error.status === 400) {
+-    return "A paginação de comentários está inválida.";
+-  }
+-
+-  if (error.status === 401) {
+-    return "A API de comentários ainda está protegida (401).";
+-  }
+-
+-  return error.message || "Não foi possível carregar os comentários.";
+-}
+-
+ function toApiError(error: unknown, fallbackMessage: string): SiteContentsApiError {
+   return error instanceof SiteContentsApiError
+     ? error
+@@ -102,34 +87,23 @@ function metadataRobots(index: boolean): NonNullable<Metadata["robots"]> {
+   };
+ }
+ 
+-function buildCommentsHref(contentId: number, commentsPage: number): Route {
+-  const params = new URLSearchParams();
+-  params.set("commentsPage", String(Math.max(0, commentsPage)));
+-  return `/content/${contentId}?${params.toString()}` as Route;
+-}
+-
+-function ContentStateView({ title, message, deepLink }: ContentStateViewProps) {
++function ContentStateView({ title, message }: ContentStateViewProps) {
+   return (
+     <PageShell>
+-      <section className="surface-card p-8 md:p-10">
+-        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+-          Conteúdo
+-        </span>
+-        <h1 className="mt-3 text-4xl font-semibold text-[var(--ink)] md:text-5xl">
+-          {title}
+-        </h1>
+-        <p className="mt-4 text-base text-[var(--ink-soft)]">{message}</p>
+-        <div className="mt-6 flex flex-wrap gap-3">
+-          <Link className="button" href="/contents">
+-            Voltar para conteúdos
+-          </Link>
+-          {deepLink ? (
+-            <OpenInAppButton className="button secondary" deepLink={deepLink}>
+-              Abrir no app
+-            </OpenInAppButton>
+-          ) : null}
+-        </div>
+-      </section>
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
++        <section className="bg-surface-light dark:bg-surface-dark rounded-2xl p-8 md:p-10 border border-stone-200 dark:border-stone-800 shadow-sm">
++          <span className="text-xs font-bold uppercase tracking-wider text-primary">
++            Conteúdo
++          </span>
++          <h1 className="mt-3 font-display text-4xl font-bold text-stone-900 dark:text-white md:text-5xl">{title}</h1>
++          <p className="mt-4 max-w-2xl text-base text-stone-600 dark:text-stone-400">{message}</p>
++          <div className="mt-8 flex flex-wrap gap-4">
++            <Link className="bg-stone-900 hover:bg-stone-800 dark:bg-stone-100 dark:hover:bg-white dark:text-stone-900 text-white px-6 py-3 rounded-full font-medium transition-colors" href="/contents">
++              Voltar para conteúdos
++            </Link>
++          </div>
++        </section>
++      </div>
+     </PageShell>
+   );
+ }
+@@ -211,9 +185,8 @@ export async function generateMetadata({
+   }
+ }
+ 
+-export default async function ContentPage({ params, searchParams }: ContentPageProps) {
++export default async function ContentPage({ params }: ContentPageProps) {
+   const contentId = parseContentId(params.id);
+-  const commentsPage = parseCommentsPage(searchParams);
+   const token = getSiteContentsServerToken();
+ 
+   if (!contentId) {
+@@ -225,8 +198,6 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
+     );
+   }
+ 
+-  const deepLink = `meer://content/${encodeURIComponent(String(contentId))}`;
+-
+   let content: GuideContentDto | null = null;
+   let contentError: SiteContentsApiError | null = null;
+ 
+@@ -244,7 +215,6 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
+       <ContentStateView
+         title="Não foi possível abrir este conteúdo."
+         message={contentError ? buildContentErrorMessage(contentError) : "Falha ao carregar conteúdo."}
+-        deepLink={deepLink}
+       />
+     );
+   }
+@@ -260,13 +230,7 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
+     })
+     : Promise.resolve(null);
+ 
+-  const [commentsResult, fallbackRelatedResult, storeRelatedResult] = await Promise.allSettled([
+-    listSiteGuideContentComments(content.id, {
+-      page: commentsPage,
+-      pageSize: COMMENTS_PAGE_SIZE,
+-      token,
+-      revalidate: CONTENTS_REVALIDATE_SECONDS
+-    }),
++  const [fallbackRelatedResult, storeRelatedResult] = await Promise.allSettled([
+     listSiteGuideContents({
+       page: 0,
+       pageSize: RELATED_CONTENTS_PAGE_SIZE,
+@@ -277,12 +241,6 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
+     storeRelatedPromise
+   ]);
+ 
+-  const comments = commentsResult.status === "fulfilled" ? commentsResult.value : null;
+-  const commentsError =
+-    commentsResult.status === "rejected"
+-      ? toApiError(commentsResult.reason, "Falha ao carregar comentários.")
+-      : null;
+-
+   const fallbackRelatedContents =
+     fallbackRelatedResult.status === "fulfilled" ? fallbackRelatedResult.value.items : [];
+ 
+@@ -302,6 +260,9 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
+     description: content.description
+   });
+ 
++  const words = content.description.trim().split(/\s+/).length;
++  const readingTime = Math.max(1, Math.ceil(words / 200)); 
++
+   return (
+     <PageShell>
+       <JsonLdScript
+@@ -313,63 +274,148 @@ export default async function ContentPage({ params, searchParams }: ContentPageP
+         data={buildContentArticleJsonLd(content)}
+       />
+ 
+-      <section className="surface-card p-8 md:p-10">
+-        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+-          Conteúdo
+-        </span>
+-        <h1 className="mt-3 text-4xl font-semibold leading-tight text-[var(--ink)] md:text-5xl">
+-          {content.title}
+-        </h1>
+-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--ink-soft)] md:text-lg">
+-          {content.description}
+-        </p>
+-        <div className="mt-6 flex flex-wrap gap-3">
+-          <OpenInAppButton className="button" deepLink={deepLink}>
+-            Abrir no app
+-          </OpenInAppButton>
+-          <Link className="button secondary" href="/contents">
+-            Ver mais conteúdos
+-          </Link>
+-        </div>
+-      </section>
+-
+-      <section className="surface-card content-detail-card p-6">
++      <div className="relative w-full h-[60vh] md:h-[75vh] overflow-hidden">
++        <div className="absolute inset-0 bg-black/30 z-10"></div>
+         {content.imageUrl ? (
+-          <div className="content-detail-image-wrap">
+-            <Image
+-              src={content.imageUrl}
+-              alt={`Imagem do conteúdo ${content.title}`}
+-              fill
+-              sizes="(max-width: 860px) 100vw, 860px"
+-              className="content-detail-image"
+-              priority
+-            />
++          <Image
++            alt={`Imagem do conteúdo ${content.title}`}
++            className="w-full h-full object-cover"
++            src={content.imageUrl}
++            fill
++            priority
++            sizes="100vw"
++          />
++        ) : (
++          <div className="w-full h-full bg-stone-800 flex items-center justify-center">
++            <span className="material-icons-outlined text-6xl text-stone-500">article</span>
++          </div>
++        )}
++        <div className="absolute bottom-0 left-0 w-full z-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-32 pb-12">
++          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
++            <span className="inline-block py-1 px-4 rounded-full bg-primary/90 text-white text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-sm">
++              {content.thriftStoreName || "Comunidade"}
++            </span>
++            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 drop-shadow-lg">
++              {content.title}
++            </h1>
+           </div>
+-        ) : null}
+-
+-        <div className="content-detail-meta">
+-          <p>
+-            <strong>Loja:</strong> {content.thriftStoreName || "Comunidade"}
+-          </p>
+-          <p>
+-            <strong>Publicado em:</strong> {formatDateTime(content.createdAt)}
+-          </p>
+-          <p>
+-            <strong>Curtidas:</strong> {content.likeCount} • <strong>Comentários:</strong>{" "}
+-            {content.commentCount}
+-          </p>
+         </div>
+-      </section>
+-
+-      {shouldRenderContentAd ? <LandingContentsAd className="mt-2" /> : null}
++      </div>
++
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-30 mb-24">
++        <div className="bg-surface-light dark:bg-surface-dark rounded-t-3xl shadow-xl border border-stone-200 dark:border-stone-800 p-6 md:p-12 lg:p-16">
++          <div className="flex flex-col md:flex-row justify-between items-center border-b border-stone-200 dark:border-stone-700 pb-8 mb-12 gap-6">
++            <div className="flex items-center gap-4">
++              <div className="w-14 h-14 rounded-full bg-stone-200 overflow-hidden ring-2 ring-primary/20 flex items-center justify-center text-stone-500">
++                <span className="material-icons-outlined text-2xl">person</span>
++              </div>
++              <div>
++                <p className="font-display font-bold text-stone-900 dark:text-white text-lg">Membro da Comunidade</p>
++                <p className="text-stone-500 dark:text-stone-400 text-sm">Criador de Conteúdo</p>
++              </div>
++            </div>
++            
++            <div className="flex items-center gap-6 text-sm text-stone-500 dark:text-stone-400">
++              <span className="flex items-center gap-2">
++                <span className="material-icons-outlined text-lg">calendar_today</span>
++                {formatDateShort(content.createdAt)}
++              </span>
++              <span className="flex items-center gap-2">
++                <span className="material-icons-outlined text-lg">schedule</span>
++                {readingTime} min de leitura
++              </span>
++            </div>
++          </div>
+ 
++          <div className="grid lg:grid-cols-12 gap-12">
++            <div className="lg:col-span-8 font-body text-lg leading-relaxed text-text-body dark:text-text-body-dark">
++              <div className="prose prose-stone dark:prose-invert max-w-none 
++                  prose-p:mb-8 prose-p:leading-relaxed prose-p:text-lg 
++                  prose-headings:font-display prose-headings:font-bold prose-headings:text-stone-900 dark:prose-headings:text-white
++                  prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6
++                  prose-a:text-primary prose-a:no-underline hover:prose-a:underline
++                  prose-blockquote:border-l-4 prose-blockquote:border-secondary prose-blockquote:pl-6 prose-blockquote:my-10 prose-blockquote:italic prose-blockquote:font-display prose-blockquote:text-2xl prose-blockquote:text-secondary dark:prose-blockquote:text-green-400 prose-blockquote:bg-secondary/5 dark:prose-blockquote:bg-secondary/10 prose-blockquote:py-6 prose-blockquote:pr-4 prose-blockquote:rounded-r-xl
++                  prose-li:my-2
++                  prose-strong:font-bold prose-strong:text-stone-900 dark:prose-strong:text-white">
++                <ReactMarkdown>{content.description}</ReactMarkdown>
++              </div>
++
++              <hr className="border-stone-200 dark:border-stone-700 my-12" />
++              <div className="flex items-center justify-between">
++                <div className="flex flex-wrap gap-2">
++                  <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs font-medium text-stone-600 dark:text-stone-300">#GuiaBrecho</span>
++                  <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs font-medium text-stone-600 dark:text-stone-300">#Achados</span>
++                  {content.thriftStoreName && (
++                    <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs font-medium text-stone-600 dark:text-stone-300">#{content.thriftStoreName.replace(/\s+/g, '')}</span>
++                  )}
++                </div>
++              </div>
++            </div>
++
++            <aside className="lg:col-span-4 space-y-8 mt-12 lg:mt-0">
++              <div className="bg-off-white dark:bg-stone-800/50 p-6 rounded-2xl border border-stone-100 dark:border-stone-700">
++                <h3 className="font-display font-bold text-lg text-stone-900 dark:text-white mb-4 uppercase tracking-wider text-xs">Sobre a Autora</h3>
++                <p className="text-sm text-stone-600 dark:text-stone-400 mb-4 leading-relaxed">
++                  Este conteúdo foi compartilhado por um membro da nossa comunidade de garimpeiros. Participe e ajude a fortalecer a moda circular.
++                </p>
++                <Link href="/contents" className="text-primary text-sm font-bold hover:underline">Ver todos os posts →</Link>
++              </div>
++
++              {content.thriftStoreName && (
++                <div className="bg-white dark:bg-stone-900 p-6 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-800">
++                  <h3 className="font-display font-bold text-xl text-stone-900 dark:text-white mb-6 flex items-center gap-2">
++                    <span className="material-icons-outlined text-primary">store</span>
++                    Brechó Citado
++                  </h3>
++                  <Link 
++                    href={content.thriftStoreId ? `/store/${content.thriftStoreId}` : "#"} 
++                    className="group block"
++                  >
++                    <div className="flex gap-4 items-start">
++                      <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-stone-200 dark:bg-stone-800">
++                        {content.thriftStoreCoverImageUrl ? (
++                          <Image 
++                            alt={content.thriftStoreName} 
++                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
++                            src={content.thriftStoreCoverImageUrl}
++                            width={64}
++                            height={64}
++                          />
++                        ) : (
++                          <div className="w-full h-full flex items-center justify-center">
++                            <span className="material-icons-outlined text-stone-400">storefront</span>
++                          </div>
++                        )}
++                      </div>
++                      <div>
++                        <h4 className="font-bold text-stone-900 dark:text-white group-hover:text-primary transition-colors">{content.thriftStoreName}</h4>
++                        <span className="text-[10px] uppercase font-bold text-secondary tracking-wide border border-secondary/30 px-1.5 py-0.5 rounded mt-2 inline-block">Ver Detalhes</span>
++                      </div>
++                    </div>
++                  </Link>
++                </div>
++              )}
++
++              {shouldRenderContentAd ? <LandingContentsAd className="mt-2" /> : null}
++
++              <div className="bg-secondary text-white p-8 rounded-2xl relative overflow-hidden">
++                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
++                <h3 className="font-display font-bold text-2xl mb-2 relative z-10">Receba achados semanais</h3>
++                <p className="text-stone-200 text-sm mb-6 relative z-10">Curadoria exclusiva direto no seu e-mail, toda sexta-feira.</p>
++                <form className="relative z-10" onSubmit={(e) => e.preventDefault()}>
++                  <input className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:ring-2 focus:ring-white/50 focus:border-transparent mb-3 text-sm" placeholder="Seu melhor e-mail" type="email" required />
++                  <button type="submit" className="w-full bg-white text-secondary font-bold py-2.5 rounded-lg hover:bg-stone-100 transition-colors text-sm">
++                    Inscrever-se
++                  </button>
++                </form>
++              </div>
++            </aside>
++          </div>
++        </div>
++      </div>
++      
+       <RelatedContentsSection items={relatedContents} />
+ 
+-      <CommentsSection
+-        comments={comments}
+-        commentsErrorMessage={commentsError ? buildCommentsErrorMessage(commentsError) : null}
+-        buildPageHref={(page) => buildCommentsHref(content.id, page)}
+-      />
+     </PageShell>
+   );
+ }
+diff --git a/app/globals.css b/app/globals.css
+index ef0febb..b92373f 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -1,646 +1,22 @@
+ @config "../tailwind.config.js";
+ @import "tailwindcss";
+ 
+-:root {
+-  color-scheme: light;
+-  --site-header-height: 5rem;
+-  --site-header-offset: calc(var(--site-header-height) + 0.75rem);
+-  --bg: #f7f4ef;
+-  --bg-2: #efe8dc;
+-  --bg-3: #e8dccb;
+-  --surface: #ffffff;
+-  --surface-muted: #f9f2e8;
+-  --ink: #1f2937;
+-  --ink-soft: #57534e;
+-  --ink-muted: #78716c;
+-  --accent: #f59e0b;
+-  --accent-2: #d97706;
+-  --accent-3: #b45309;
+-  --card: var(--surface);
+-  --border: #e8dccb;
+-  --shadow-soft: 0 16px 36px -18px rgba(15, 23, 42, 0.24);
+-  --shadow: 0 24px 64px -28px rgba(15, 23, 42, 0.26);
++::-webkit-scrollbar {
++    width: 8px;
+ }
+-
+-html.dark {
+-  color-scheme: dark;
+-  --bg: #171311;
+-  --bg-2: #221b17;
+-  --bg-3: #2f251f;
+-  --surface: #27201c;
+-  --surface-muted: #342922;
+-  --ink: #f5f5f4;
+-  --ink-soft: #d6d3d1;
+-  --ink-muted: #a8a29e;
+-  --accent: #f59e0b;
+-  --accent-2: #fbbf24;
+-  --accent-3: #fcd34d;
+-  --card: var(--surface);
+-  --border: #3b3129;
+-  --shadow-soft: 0 16px 40px -24px rgba(0, 0, 0, 0.75);
+-  --shadow: 0 24px 68px -28px rgba(0, 0, 0, 0.82);
+-}
+-
+-* {
+-  box-sizing: border-box;
+-}
+-
+-html,
+-body {
+-  padding: 0;
+-  margin: 0;
+-}
+-
+-html {
+-  scroll-padding-top: var(--site-header-offset);
+-}
+-
+-body {
+-  font-family: var(--font-body), "Segoe UI", sans-serif;
+-  color: var(--ink);
+-  background: radial-gradient(1200px 600px at 20% -10%, var(--surface) 0%, var(--bg) 40%, var(--bg-2) 100%);
+-  transition: background-color 220ms ease, color 220ms ease;
+-}
+-
+-a {
+-  color: inherit;
+-  text-decoration: none;
+-}
+-
+-.page {
+-  min-height: 100vh;
+-  padding: clamp(24px, 5vw, 64px);
+-  display: flex;
+-  flex-direction: column;
+-  gap: clamp(32px, 4vw, 48px);
+-  position: relative;
+-  overflow: hidden;
+-}
+-
+-.page::before {
+-  content: "";
+-  position: absolute;
+-  width: 520px;
+-  height: 520px;
+-  right: -120px;
+-  top: -160px;
+-  background: radial-gradient(circle at center, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0) 70%);
+-  pointer-events: none;
+-}
+-
+-.page::after {
+-  content: "";
+-  position: absolute;
+-  width: 420px;
+-  height: 420px;
+-  left: -120px;
+-  bottom: -120px;
+-  background: radial-gradient(circle at center, rgba(217, 119, 6, 0.2) 0%, rgba(217, 119, 6, 0) 70%);
+-  pointer-events: none;
+-}
+-
+-.hero {
+-  max-width: 720px;
+-  display: flex;
+-  flex-direction: column;
+-  gap: 16px;
+-  z-index: 1;
+-}
+-
+-.eyebrow {
+-  text-transform: uppercase;
+-  letter-spacing: 0.24em;
+-  font-size: 12px;
+-  color: var(--accent);
+-  font-weight: 600;
+-}
+-
+-.hero h1 {
+-  font-family: var(--font-display), "Segoe UI", sans-serif;
+-  font-size: clamp(32px, 6vw, 64px);
+-  line-height: 1.05;
+-  margin: 0;
+-}
+-
+-.hero p {
+-  font-size: clamp(16px, 2.2vw, 20px);
+-  color: var(--ink-soft);
+-  margin: 0;
+-}
+-
+-.hero-actions {
+-  display: flex;
+-  flex-wrap: wrap;
+-  gap: 12px;
+-  margin-top: 12px;
+-}
+-
+-.button {
+-  display: inline-flex;
+-  align-items: center;
+-  justify-content: center;
+-  padding: 12px 18px;
+-  border-radius: 999px;
+-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+-  color: #fff;
+-  font-weight: 600;
+-  box-shadow: 0 16px 32px rgba(180, 83, 9, 0.2);
+-  border: 1px solid transparent;
+-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+-}
+-
+-.button:hover {
+-  transform: translateY(-1px);
+-  box-shadow: 0 20px 40px rgba(180, 83, 9, 0.26);
+-}
+-
+-.button.secondary {
+-  background: var(--surface);
+-  color: var(--accent);
+-  border: 1px solid var(--border);
+-  box-shadow: none;
++::-webkit-scrollbar-track {
++    background: transparent;
+ }
+-
+-.cards {
+-  display: grid;
+-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+-  gap: 18px;
+-  z-index: 1;
+-}
+-
+-.card {
+-  background: var(--card);
+-  border: 1px solid var(--border);
+-  border-radius: 20px;
+-  padding: 18px;
+-  box-shadow: var(--shadow);
++::-webkit-scrollbar-thumb {
++    background: #D1D5DB;
++    border-radius: 4px;
+ }
+-
+-.card h3 {
+-  margin: 0 0 8px;
+-  font-family: var(--font-display), "Segoe UI", sans-serif;
+-  font-size: 18px;
+-}
+-
+-.card p {
+-  margin: 0;
+-  color: var(--ink-soft);
+-  font-size: 15px;
++::-webkit-scrollbar-thumb:hover {
++    background: #9CA3AF;
+ }
+-
+-.redirect-card {
+-  border-style: dashed;
+-  background: var(--surface);
+-}
+-
+-.redirect-note {
+-  margin: 0 0 24px;
+-  font-size: 14px;
+-  color: var(--ink-soft);
+-}
+-
+-.redirect-actions {
+-  display: flex;
+-  flex-wrap: wrap;
+-  gap: 12px;
+-}
+-button.button {
+-  border: 1px solid transparent;
+-  cursor: pointer;
+-  font: inherit;
+-}
+-
+-.form-card {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 18px;
+-  width: 100%;
+-  max-width: 50%;
+-}
+-
+-.form-field {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 8px;
+-}
+-
+-.label {
+-  font-weight: 600;
+-  color: var(--ink);
+-}
+-
+-.input-row {
+-  display: flex;
+-  gap: 10px;
+-  align-items: center;
+-}
+-
+-.input {
+-  flex: 1;
+-  padding: 12px 14px;
+-  border-radius: 14px;
+-  border: 1px solid var(--border);
+-  font-size: 15px;
+-  background: var(--surface);
+-  color: var(--ink);
+-}
+-
+-.input:focus {
+-  outline: 2px solid rgba(245, 158, 11, 0.35);
+-  border-color: rgba(245, 158, 11, 0.65);
+-}
+-
+-.toggle {
+-  border: 1px solid var(--border);
+-  border-radius: 999px;
+-  padding: 10px 14px;
+-  background: var(--surface);
+-  color: var(--accent);
+-  font-weight: 600;
+-  cursor: pointer;
+-}
+-
+-.helper {
+-  font-size: 13px;
+-  color: var(--ink-soft);
+-}
+-
+-.strength {
+-  position: relative;
+-  height: 6px;
+-  border-radius: 999px;
+-  background: var(--surface-muted);
+-  overflow: hidden;
+-}
+-
+-.strength-bar {
+-  display: block;
+-  height: 100%;
+-  border-radius: 999px;
+-  transition: width 0.2s ease;
+-}
+-
+-.strength-weak .strength-bar {
+-  background: #f97316;
+-}
+-
+-.strength-ok .strength-bar {
+-  background: #f59e0b;
+-}
+-
+-.strength-strong .strength-bar {
+-  background: #16a34a;
+-}
+-
+-.form-error {
+-  padding: 10px 12px;
+-  border-radius: 12px;
+-  background: #fee2e2;
+-  color: #b91c1c;
+-  font-size: 14px;
+-  border: 1px solid #fecaca;
+-}
+-
+-.form-success {
+-  padding: 10px 12px;
+-  border-radius: 12px;
+-  background: #dcfce7;
+-  color: #166534;
+-  font-size: 14px;
+-  border: 1px solid #bbf7d0;
+-}
+-
+-.contents-page {
+-  width: min(1080px, 100%);
+-  margin: 0 auto;
+-}
+-
+-.contents-filters {
+-  width: 100%;
+-}
+-
+-.contents-filter-form {
+-  display: grid;
+-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+-  gap: 14px;
+-}
+-
+-.contents-filter-actions {
+-  display: flex;
+-  flex-wrap: wrap;
+-  gap: 10px;
+-  align-items: center;
+-  grid-column: 1 / -1;
+-}
+-
+-.contents-state h2 {
+-  margin: 0 0 8px;
+-  font-family: var(--font-display), "Segoe UI", sans-serif;
+-  font-size: 22px;
+-}
+-
+-.contents-state p {
+-  margin: 0;
+-  color: var(--ink-soft);
++html.dark ::-webkit-scrollbar-thumb {
++    background: #4B5563;
+ }
+-
+-.skeleton-block {
+-  display: block;
+-  border-radius: 10px;
+-  background: color-mix(in srgb, var(--surface-muted) 78%, var(--ink) 8%);
+-}
+-
+-.skeleton-shimmer {
+-  position: relative;
+-  overflow: hidden;
+-  isolation: isolate;
+-}
+-
+-.skeleton-shimmer::after {
+-  content: "";
+-  position: absolute;
+-  inset: 0;
+-  transform: translateX(-100%);
+-  background: linear-gradient(
+-    100deg,
+-    transparent 0%,
+-    color-mix(in srgb, #ffffff 70%, transparent) 45%,
+-    transparent 100%
+-  );
+-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+-}
+-
+-@keyframes skeleton-shimmer {
+-  100% {
+-    transform: translateX(100%);
+-  }
+-}
+-
+-.contents-grid {
+-  display: grid;
+-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+-  gap: 18px;
+-}
+-
+-.content-card {
+-  padding: 0;
+-  overflow: hidden;
+-}
+-
+-.content-card-link {
+-  display: flex;
+-  flex-direction: column;
+-  min-height: 100%;
+-}
+-
+-.content-card-image-wrap {
+-  height: 180px;
+-  overflow: hidden;
+-  background: var(--surface-muted);
+-}
+-
+-.content-card-image {
+-  width: 100%;
+-  height: 100%;
+-  object-fit: cover;
+-}
+-
+-.content-card-image-fallback {
+-  display: flex;
+-  align-items: center;
+-  justify-content: center;
+-  color: var(--accent-3);
+-  font-size: 14px;
+-}
+-
+-.content-card-body {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 8px;
+-  padding: 16px;
+-  flex: 1;
+-}
+-
+-.content-card-store {
+-  margin: 0;
+-  color: var(--accent-3);
+-  font-size: 11px;
+-  letter-spacing: 0.12em;
+-  text-transform: uppercase;
+-  font-weight: 700;
+-}
+-
+-.content-card-body h3 {
+-  margin: 0;
+-  font-size: 18px;
+-  line-height: 1.3;
+-}
+-
+-.content-card-body p {
+-  margin: 0;
+-}
+-
+-.content-card-body > p:nth-of-type(2) {
+-  color: var(--ink-soft);
+-  font-size: 14px;
+-  line-height: 1.45;
+-  display: -webkit-box;
+-  -webkit-box-orient: vertical;
+-  -webkit-line-clamp: 3;
+-  overflow: hidden;
+-}
+-
+-.content-card-meta {
+-  margin-top: auto;
+-  display: flex;
+-  gap: 10px;
+-  flex-wrap: wrap;
+-  color: var(--ink-muted);
+-  font-size: 12px;
+-}
+-
+-.contents-pagination {
+-  display: flex;
+-  flex-wrap: wrap;
+-  gap: 12px;
+-  justify-content: space-between;
+-  align-items: center;
+-}
+-
+-.contents-pagination-label {
+-  margin: 0;
+-  font-weight: 600;
+-  color: var(--ink-soft);
+-}
+-
+-.button-disabled {
+-  opacity: 0.56;
+-  pointer-events: none;
+-  box-shadow: none;
+-}
+-
+-.content-detail-card {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 14px;
+-}
+-
+-.content-detail-hero {
+-  max-width: 860px;
+-}
+-
+-.content-detail-image-wrap {
+-  position: relative;
+-  width: 100%;
+-  aspect-ratio: 16 / 9;
+-  max-height: 420px;
+-  overflow: hidden;
+-  border-radius: 16px;
+-  background: var(--surface-muted);
+-}
+-
+-.content-detail-image {
+-  object-fit: cover;
+-}
+-
+-.content-detail-meta {
+-  display: grid;
+-  gap: 6px;
+-}
+-
+-.content-detail-meta p {
+-  margin: 0;
+-  color: var(--ink-soft);
+-}
+-
+-.related-contents-section h2 {
+-  margin: 0 0 8px;
+-  font-family: var(--font-display), "Segoe UI", sans-serif;
+-}
+-
+-.related-contents-section > p {
+-  margin: 0 0 16px;
+-  color: var(--ink-soft);
+-}
+-
+-.related-contents-grid {
+-  margin-top: 0;
+-}
+-
+-.comments-section h2 {
+-  margin: 0 0 12px;
+-  font-family: var(--font-display), "Segoe UI", sans-serif;
+-}
+-
+-.comments-list {
+-  display: grid;
+-  gap: 12px;
+-}
+-
+-.comment-item {
+-  border: 1px solid var(--border);
+-  border-radius: 14px;
+-  padding: 12px;
+-  background: var(--surface);
+-}
+-
+-.comment-header {
+-  display: flex;
+-  justify-content: space-between;
+-  gap: 12px;
+-  font-size: 13px;
+-  color: var(--ink-soft);
+-}
+-
+-.comment-item p {
+-  margin: 8px 0 6px;
+-}
+-
+-.comment-item small {
+-  color: var(--ink-muted);
+-}
+-
+-.home-content-title {
+-  font-size: 18px;
+-  line-height: 1.35;
+-  margin: 0;
+-  padding-bottom: 2px;
+-  display: -webkit-box;
+-  -webkit-box-orient: vertical;
+-  -webkit-line-clamp: 2;
+-  overflow: hidden;
+-}
+-
+-.home-content-description {
+-  margin: 0;
+-  font-size: 14px;
+-  color: var(--ink-soft);
+-  line-height: 1.5;
+-  padding-bottom: 2px;
+-  display: -webkit-box;
+-  line-clamp: 3;
+-  -webkit-box-orient: vertical;
+-  -webkit-line-clamp: 3;
+-  overflow: hidden;
+-  text-overflow: ellipsis;
+-  overflow-wrap: anywhere;
+-  word-break: break-word;
+-}
+-
+-.surface-card {
+-  background: var(--surface);
+-  border: 1px solid var(--border);
+-  border-radius: 20px;
+-  box-shadow: var(--shadow-soft);
+-}
+-
+-.section-shell {
+-  width: min(1200px, calc(100% - 2rem));
+-  margin: 0 auto;
+-}
+-
+-.footer {
+-  margin-top: auto;
+-  font-size: 13px;
+-  color: var(--ink-soft);
+-  z-index: 1;
+-}
+-
+-@media (max-width: 600px) {
+-  .hero-actions {
+-    flex-direction: column;
+-    align-items: stretch;
+-  }
+-
+-  .button {
+-    width: 100%;
+-  }
+-
+-  .input-row {
+-    flex-direction: column;
+-    align-items: stretch;
+-  }
+-
+-  .toggle {
+-    width: 100%;
+-    text-align: center;
+-  }
+-
+-  .form-card {
+-    max-width: 100%;
+-  }
+-
+-  .contents-filter-actions {
+-    flex-direction: column;
+-    align-items: stretch;
+-  }
+-
+-  .contents-pagination {
+-    flex-direction: column;
+-    align-items: stretch;
+-  }
+-
+-  .contents-pagination-label {
+-    text-align: center;
+-  }
++html.dark ::-webkit-scrollbar-thumb:hover {
++    background: #6B7280;
+ }
+diff --git a/app/layout.tsx b/app/layout.tsx
+index f0b5e5a..b4b135b 100644
+--- a/app/layout.tsx
++++ b/app/layout.tsx
+@@ -1,25 +1,30 @@
+ import "./globals.css";
+ import type { Metadata } from "next";
+-import { Lexend, Space_Grotesk } from "next/font/google";
++import { Playfair_Display, Inter, Lora } from "next/font/google";
+ import { SpeedInsights } from "@vercel/speed-insights/next";
+ import FirebaseAnalyticsBootstrap from "../src/firebase/FirebaseAnalyticsBootstrap";
+ import MixpanelBootstrap from "../src/analytics/MixpanelBootstrap";
+ import { androidPackage, appName, iosAppStoreId, webBaseUrl } from "../src/urls";
+ import { THEME_STORAGE_KEY } from "../src/theme/theme";
+ 
+-const display = Space_Grotesk({
++const display = Playfair_Display({
+   subsets: ["latin"],
+-  variable: "--font-display"
++  variable: "--font-display",
+ });
+ 
+-const body = Lexend({
++const sans = Inter({
+   subsets: ["latin"],
+-  variable: "--font-body"
++  variable: "--font-sans",
++});
++
++const body = Lora({
++  subsets: ["latin"],
++  variable: "--font-body",
+ });
+ 
+ export const metadata: Metadata = {
+   metadataBase: new URL(webBaseUrl),
+-  title: "Guia Brechó",
++  title: "Guia Brechó - Garimpe com Propósito",
+   description: "Guia Brechó. Descubra brechós, conteúdos e dicas de consumo consciente.",
+   alternates: {
+     canonical: "/"
+@@ -59,12 +64,12 @@ const themeInitScript = `
+   (() => {
+     try {
+       const stored = window.localStorage.getItem("${THEME_STORAGE_KEY}");
+-      const theme = stored === "dark" ? "dark" : "light";
++      const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
++      const theme = stored ? (stored === "dark" ? "dark" : "light") : systemPreference;
+       const root = document.documentElement;
+       root.classList.toggle("dark", theme === "dark");
+-      root.style.colorScheme = theme;
+     } catch {
+-      document.documentElement.style.colorScheme = "light";
++      // fallback
+     }
+   })();
+ `;
+@@ -73,11 +78,12 @@ export default function RootLayout({
+   children
+ }: Readonly<{ children: React.ReactNode }>) {
+   return (
+-    <html lang="pt-BR" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
++    <html lang="pt-BR" className={`${display.variable} ${sans.variable} ${body.variable}`} suppressHydrationWarning>
+       <head>
++        <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+         <script id="theme-init" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+       </head>
+-      <body>
++      <body className="bg-background-light dark:bg-background-dark text-stone-800 dark:text-stone-200 font-sans transition-colors duration-300">
+         <FirebaseAnalyticsBootstrap />
+         <MixpanelBootstrap />
+         {children}
+diff --git a/app/page.tsx b/app/page.tsx
+index 552a3a9..5939629 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -12,30 +12,27 @@ import FeaturedStoresSection from "../src/featuredStores/ui/FeaturedStoresSectio
+ import HomeSectionIntentHandler from "../src/navigation/HomeSectionIntentHandler";
+ import PageShell from "../src/ui/PageShell";
+ 
+-const brandName = "Guia Brechó";
+-
+ const features = [
+   {
+     title: "Mapa vivo de brechós",
+     description:
+       "Encontre brechós por perto com sugestões atualizadas e filtros inteligentes para cada estilo.",
++    icon: "map"
+   },
+   {
+     title: "Achados que valem a pena",
+     description:
+       "Salve favoritos, monte rotas e receba dicas de peças únicas sem perder tempo no feed.",
++    icon: "favorite_border"
+   },
+   {
+     title: "Comunidade que ajuda",
+     description:
+       "Veja avaliações reais e compartilhe experiências para fortalecer o consumo consciente.",
++    icon: "groups"
+   },
+ ];
+ 
+-const badgeLinkClasses =
+-  "inline-flex h-12 items-center justify-center transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:h-14";
+-const badgeImageClasses = "h-full w-[132px] object-contain sm:w-[150px]";
+-
+ async function getFeaturedContents(): Promise<FeaturedContentState> {
+   const token = getSiteContentsServerToken();
+ 
+@@ -78,37 +75,35 @@ async function FeaturedStoresSectionContainer() {
+ 
+ function FeaturedContentsSkeleton() {
+   return (
+-    <section className="rounded-3xl border border-white/80 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.06)] backdrop-blur md:p-8">
+-      <p className="text-xs uppercase tracking-[0.35em] text-neutral-500">
+-        Conteúdos
+-      </p>
+-      <h2 className="mt-2 text-3xl font-semibold leading-tight text-neutral-900">
+-        Dicas fresquinhas para seu próximo garimpo.
+-      </h2>
+-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-600">
+-        Carregando publicações recentes...
+-      </p>
+-      <div className="mt-6 h-48 rounded-2xl border border-amber-100 bg-amber-50/70" />
++    <section className="py-24">
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
++        <div className="mb-12 animate-pulse">
++          <div className="h-4 w-24 bg-stone-200 dark:bg-stone-700 rounded mb-4"></div>
++          <div className="h-12 w-3/4 bg-stone-200 dark:bg-stone-700 rounded mb-4"></div>
++          <div className="h-6 w-1/2 bg-stone-200 dark:bg-stone-700 rounded"></div>
++        </div>
++        <div className="grid lg:grid-cols-2 gap-8 animate-pulse">
++          <div className="h-64 bg-stone-200 dark:bg-stone-800 rounded-2xl"></div>
++          <div className="h-64 bg-stone-200 dark:bg-stone-800 rounded-2xl"></div>
++        </div>
++      </div>
+     </section>
+   );
+ }
+ 
+ function FeaturedStoresSkeleton() {
+   return (
+-    <section className="surface-card p-6 md:p-8">
+-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--ink-muted)]">
+-        Brechós em destaque
+-      </p>
+-      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
+-        Curadoria especial da semana
+-      </h2>
+-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+-        {Array.from({ length: 4 }).map((_, index) => (
+-          <div
+-            key={index}
+-            className="aspect-square animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]"
+-          />
+-        ))}
++    <section className="py-24 bg-white dark:bg-stone-900/50">
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
++        <div className="mb-12 animate-pulse">
++          <div className="h-4 w-32 bg-stone-200 dark:bg-stone-700 rounded mb-4"></div>
++          <div className="h-10 w-2/3 bg-stone-200 dark:bg-stone-700 rounded"></div>
++        </div>
++        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
++          {Array.from({ length: 4 }).map((_, index) => (
++            <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-stone-200 dark:bg-stone-800" />
++          ))}
++        </div>
+       </div>
+     </section>
+   );
+@@ -116,118 +111,130 @@ function FeaturedStoresSkeleton() {
+ 
+ export default function HomePage() {
+   return (
+-    <PageShell
+-      backgroundVariant="home"
+-      contentClassName="section-shell relative z-10 flex flex-col gap-16 pb-16 pt-28 md:pt-32"
+-    >
++    <PageShell>
+       <HomeSectionIntentHandler />
+ 
+-      <section className="surface-card grid gap-10 p-8 md:p-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
+-        <div>
+-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+-            Guia Brechó
+-          </p>
+-          <h1 className="mt-4 max-w-4xl font-[var(--font-display)] text-4xl font-semibold leading-[1.08] text-[var(--ink)] md:text-6xl">
+-            Ache brechós incríveis, crie rotas e garanta peças únicas sem esforço.
+-          </h1>
+-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--ink-soft)] md:text-xl">
+-            {brandName} é o seu guia para garimpar com propósito. Descubra novidades,
+-            organize suas visitas e transforme cada busca em um encontro com o estilo certo.
+-          </p>
+-
+-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+-            <a
+-              className={badgeLinkClasses}
+-              href={iosStoreUrl}
+-              target="_blank"
+-              rel="noopener noreferrer"
+-              aria-label={`Download ${brandName} on the App Store`}
+-            >
+-              <Image
+-                src="/badges/app-store.svg"
+-                alt="Download on the App Store"
+-                className={badgeImageClasses}
+-                width={120}
+-                height={40}
+-                priority
+-              />
+-            </a>
+-            <a
+-              className={badgeLinkClasses}
+-              href={androidStoreUrl}
+-              target="_blank"
+-              rel="noopener noreferrer"
+-              aria-label={`Get ${brandName} on Google Play`}
+-            >
+-              <Image
+-                src="/badges/google-play.png"
+-                alt="Get it on Google Play"
+-                className={badgeImageClasses}
+-                width={172}
+-                height={60}
+-                priority
+-              />
+-            </a>
++      <header className="relative overflow-hidden pt-16 pb-24 lg:pt-32 lg:pb-40">
++        <div className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none flex w-[200%] animate-slide-left">
++          <div className="relative w-1/2 h-full">
++            <Image src="/assets/images/world-map.jpg" alt="World Map" fill className="object-cover" priority />
++          </div>
++          <div className="relative w-1/2 h-full">
++            <Image src="/assets/images/world-map.jpg" alt="World Map" fill className="object-cover" priority />
+           </div>
+         </div>
+-
+-        <aside className="surface-card p-5 md:p-6">
+-          <div className="flex items-center gap-4">
+-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]">
+-              <Image
+-                src="/assets/images/app-icon.png"
+-                alt={`${brandName} app icon`}
+-                width={40}
+-                height={40}
+-                priority
+-                className="rounded-xl"
+-              />
++        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
++          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
++            <div className="max-w-2xl">
++              <span className="inline-block py-1 px-3 rounded-full bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300 text-xs font-semibold tracking-wide uppercase mb-6">
++                Guia Brechó
++              </span>
++              <h1 className="font-display text-5xl lg:text-7xl font-bold text-stone-900 dark:text-white leading-tight mb-6">
++                Ache brechós <span className="text-primary italic">incríveis</span>, crie rotas e garanta peças únicas.
++              </h1>
++              <p className="text-lg text-stone-600 dark:text-stone-300 mb-8 leading-relaxed max-w-lg">
++                Guia Brechó é o seu guia para garimpar com propósito. Descubra novidades, organize suas visitas e transforme cada busca em um encontro com o estilo certo.
++              </p>
++              
++              <div className="flex flex-wrap gap-4 mb-10">
++                <a
++                  href={iosStoreUrl}
++                  target="_blank"
++                  rel="noopener noreferrer"
++                  className="flex items-center bg-black hover:bg-stone-800 text-white px-5 py-3 rounded-xl transition-all shadow-md"
++                >
++                  <span className="material-icons-outlined text-2xl mr-2">apple</span>
++                  <div className="flex flex-col text-left leading-none">
++                    <span className="text-[10px]">Download on the</span>
++                    <span className="font-bold text-sm">App Store</span>
++                  </div>
++                </a>
++                <a
++                  href={androidStoreUrl}
++                  target="_blank"
++                  rel="noopener noreferrer"
++                  className="flex items-center bg-black hover:bg-stone-800 text-white px-5 py-3 rounded-xl transition-all shadow-md"
++                >
++                  <span className="material-icons-outlined text-2xl mr-2">android</span>
++                  <div className="flex flex-col text-left leading-none">
++                    <span className="text-[10px]">GET IT ON</span>
++                    <span className="font-bold text-sm">Google Play</span>
++                  </div>
++                </a>
++              </div>
+             </div>
+-            <div>
+-              <p className="text-sm font-semibold text-[var(--ink)]">Guia Brechó</p>
+-              <p className="text-xs text-[var(--ink-soft)]">Seu radar de achados conscientes</p>
++
++            <div className="relative lg:h-full flex items-center justify-center lg:justify-end">
++              <div className="absolute -z-10 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
++              
++              <div className="bg-surface-light dark:bg-surface-dark p-8 rounded-3xl shadow-2xl border border-stone-100 dark:border-stone-700 max-w-sm w-full relative transform rotate-[-2deg] hover:rotate-0 transition-transform duration-500">
++                <div className="flex items-center space-x-4 mb-8">
++                  <div className="bg-stone-100 dark:bg-stone-800 p-3 rounded-full">
++                    <span className="material-icons-outlined text-primary text-2xl">location_on</span>
++                  </div>
++                  <div>
++                    <h3 className="font-display font-bold text-stone-900 dark:text-white text-lg">Guia Brechó</h3>
++                    <p className="text-xs text-stone-500 dark:text-stone-400">Seu radar de achados conscientes</p>
++                  </div>
++                </div>
++
++                <div className="space-y-4">
++                  <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-primary cursor-pointer transition-colors group">
++                    <div className="flex items-center justify-between">
++                      <span className="text-sm font-medium text-stone-700 dark:text-stone-200">Cadastre seu brechó</span>
++                      <span className="material-icons-outlined text-stone-400 group-hover:text-primary text-sm">arrow_forward</span>
++                    </div>
++                  </div>
++                  <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-primary cursor-pointer transition-colors group">
++                    <div className="flex items-center justify-between">
++                      <span className="text-sm font-medium text-stone-700 dark:text-stone-200">Ache os brechós mais pertinhos</span>
++                      <span className="material-icons-outlined text-stone-400 group-hover:text-primary text-sm">near_me</span>
++                    </div>
++                  </div>
++                  <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-primary cursor-pointer transition-colors group">
++                    <div className="flex items-center justify-between">
++                      <span className="text-sm font-medium text-stone-700 dark:text-stone-200">Curadoria de achados em alta</span>
++                      <span className="material-icons-outlined text-stone-400 group-hover:text-primary text-sm">trending_up</span>
++                    </div>
++                  </div>
++                </div>
++              </div>
+             </div>
+           </div>
+-          <ul className="mt-6 grid gap-3 text-sm text-[var(--ink-soft)]">
+-            <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+-              Cadastre seu brechó
+-            </li>
+-            <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+-              Ache os brechós mais pertinhos de você
+-            </li>
+-            <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+-              Curadoria de achados em alta
+-            </li>
+-          </ul>
+-        </aside>
+-      </section>
+-
+-      <section id="explorar" className="grid gap-6 md:grid-cols-3">
+-        <h2 className="sr-only">Diferenciais do Guia Brechó</h2>
+-        {features.map((feature) => (
+-          <article
+-            key={feature.title}
+-            className="surface-card p-6 transition hover:-translate-y-0.5"
+-          >
+-            <h3 className="text-xl font-semibold text-[var(--ink)]">
+-              {feature.title}
+-            </h3>
+-            <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+-              {feature.description}
+-            </p>
+-          </article>
+-        ))}
++        </div>
++      </header>
++
++      <section id="explorar" className="py-16 bg-white dark:bg-stone-900/50 scroll-mt-20">
++        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
++          <div className="grid md:grid-cols-3 gap-8">
++            {features.map((feature) => (
++              <div key={feature.title} className="p-8 rounded-2xl bg-surface-light dark:bg-surface-dark border border-stone-100 dark:border-stone-800 hover:shadow-xl transition-shadow duration-300 group">
++                <div className="w-12 h-12 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
++                  <span className="material-icons-outlined text-stone-800 dark:text-stone-200 group-hover:text-primary">
++                    {feature.icon}
++                  </span>
++                </div>
++                <h3 className="font-display font-bold text-xl mb-3 text-stone-900 dark:text-white">
++                  {feature.title}
++                </h3>
++                <p className="text-stone-600 dark:text-stone-400 text-sm leading-relaxed">
++                  {feature.description}
++                </p>
++              </div>
++            ))}
++          </div>
++        </div>
+       </section>
+ 
+       <LandingContentsAd />
+ 
+-      <div id="conteudos" className="scroll-mt-[var(--site-header-offset)]">
++      <div id="conteudos" className="scroll-mt-20">
+         <Suspense fallback={<FeaturedContentsSkeleton />}>
+           <FeaturedContentsSectionContainer />
+         </Suspense>
+       </div>
+ 
+-      <div id="destaques" className="scroll-mt-[var(--site-header-offset)]">
++      <div id="destaques" className="scroll-mt-20">
+         <Suspense fallback={<FeaturedStoresSkeleton />}>
+           <FeaturedStoresSectionContainer />
+         </Suspense>
+diff --git a/app/store/[id]/page.tsx b/app/store/[id]/page.tsx
+index 412eb29..a6da374 100644
+--- a/app/store/[id]/page.tsx
++++ b/app/store/[id]/page.tsx
+@@ -9,8 +9,6 @@ type StorePageProps = {
+   params: { id: string };
+ };
+ 
+-const INSTAGRAM_BASE_URL = "https://instagram.com/";
+-
+ function safeDecode(value: string): string | null {
+   try {
+     return decodeURIComponent(value);
+@@ -38,78 +36,51 @@ function toApiError(error: unknown): SiteStoreDetailsApiError {
+   if (error instanceof SiteStoreDetailsApiError) {
+     return error;
+   }
+-
+-  return new SiteStoreDetailsApiError(500, "Nao foi possivel carregar a loja.");
++  return new SiteStoreDetailsApiError(500, "Não foi possível carregar a loja.");
+ }
+ 
+ function buildStoreErrorMessage(error: SiteStoreDetailsApiError): string {
+   if (error.status === 404) {
+-    return "Essa loja nao foi encontrada. Ela pode ter sido removida.";
++    return "Essa loja não foi encontrada. Ela pode ter sido removida.";
+   }
+-
+   if (error.status === 400) {
+-    return "O identificador informado e invalido.";
++    return "O identificador informado é inválido.";
+   }
+-
+-  return error.message || "Nao foi possivel carregar os detalhes da loja.";
++  return error.message || "Não foi possível carregar os detalhes da loja.";
+ }
+ 
+-function formatRating(rating: number | null, reviewCount: number | null): string {
+-  if (rating === null && reviewCount === null) {
+-    return "Sem avaliacoes ainda";
+-  }
+-
+-  if (rating !== null && reviewCount !== null) {
+-    return `${rating.toFixed(1)} (${reviewCount} avaliacoes)`;
+-  }
+-
+-  if (rating !== null) {
+-    return `${rating.toFixed(1)} estrelas`;
+-  }
+-
+-  return `${reviewCount} avaliacoes`;
+-}
++import DownloadAppButton from "../../../src/ui/DownloadAppButton";
+ 
+ function normalizePhoneHref(phone: string): string {
+   const normalized = phone.replace(/[^\d+]/g, "");
+   return `tel:${normalized || phone}`;
+ }
+ 
+-function normalizeWhatsappHref(whatsapp: string): string {
+-  const digits = whatsapp.replace(/\D/g, "");
+-  return digits ? `https://wa.me/${digits}` : "#";
+-}
+-
+-function normalizeInstagramHref(instagram: string): string {
+-  const trimmed = instagram.trim();
+-  if (!trimmed) return "#";
+-
+-  if (/^https?:\/\//i.test(trimmed)) {
+-    return trimmed;
+-  }
+-
+-  const username = trimmed.replace(/^@/, "").replace(/\s+/g, "");
+-  return username ? `${INSTAGRAM_BASE_URL}${username}` : "#";
++function normalizeWhatsappHref(phone: string): string {
++  const digits = phone.replace(/\D/g, "");
++  return digits ? `https://wa.me/55${digits}` : "#"; // Assuming BR country code +55 as default for Guia Brecho
+ }
+ 
+ function StoreStateView({ title, message }: { title: string; message: string }) {
+   return (
+     <PageShell>
+-      <section className="surface-card p-8 md:p-10">
+-        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+-          Loja
+-        </span>
+-        <h1 className="mt-3 text-4xl font-semibold text-[var(--ink)] md:text-5xl">{title}</h1>
+-        <p className="mt-4 max-w-2xl text-base text-[var(--ink-soft)]">{message}</p>
+-        <div className="mt-6 flex flex-wrap gap-3">
+-          <Link className="button" href="/">
+-            Voltar para o inicio
+-          </Link>
+-          <Link className="button secondary" href="/contents">
+-            Ver conteudos
+-          </Link>
+-        </div>
+-      </section>
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
++        <section className="bg-surface-light dark:bg-surface-dark rounded-2xl p-8 md:p-10 border border-stone-200 dark:border-stone-800 shadow-sm">
++          <span className="text-xs font-bold uppercase tracking-wider text-primary">
++            Loja
++          </span>
++          <h1 className="mt-3 font-display text-4xl font-bold text-stone-900 dark:text-white md:text-5xl">{title}</h1>
++          <p className="mt-4 max-w-2xl text-base text-stone-600 dark:text-stone-400">{message}</p>
++          <div className="mt-8 flex flex-wrap gap-4">
++            <Link className="bg-stone-900 hover:bg-stone-800 dark:bg-stone-100 dark:hover:bg-white dark:text-stone-900 text-white px-6 py-3 rounded-full font-medium transition-colors" href="/">
++              Voltar para o início
++            </Link>
++            <Link className="bg-stone-200 hover:bg-stone-300 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-900 dark:text-white px-6 py-3 rounded-full font-medium transition-colors" href="/contents">
++              Ver conteúdos
++            </Link>
++          </div>
++        </section>
++      </div>
+     </PageShell>
+   );
+ }
+@@ -123,7 +94,7 @@ function buildDescription(store: StoreDetails): string {
+     return parts.join(" • ");
+   }
+ 
+-  return `Veja detalhes da loja ${store.name} no Guia Brecho.`;
++  return `Veja detalhes da loja ${store.name} no Guia Brechó.`;
+ }
+ 
+ export async function generateMetadata({ params }: StorePageProps): Promise<Metadata> {
+@@ -131,8 +102,8 @@ export async function generateMetadata({ params }: StorePageProps): Promise<Meta
+ 
+   if (!storeId) {
+     return {
+-      title: "Loja invalida | Guia Brecho",
+-      description: "O identificador da loja informado e invalido.",
++      title: "Loja inválida | Guia Brechó",
++      description: "O identificador da loja informado é inválido.",
+       alternates: {
+         canonical: "/"
+       },
+@@ -145,7 +116,7 @@ export async function generateMetadata({ params }: StorePageProps): Promise<Meta
+ 
+   try {
+     const store = await getSiteStoreById(storeId);
+-    const title = `${store.name} | Guia Brecho`;
++    const title = `${store.name} | Guia Brechó`;
+     const description = buildDescription(store);
+     const canonicalPath = `/store/${storeId}`;
+ 
+@@ -161,7 +132,7 @@ export async function generateMetadata({ params }: StorePageProps): Promise<Meta
+         title,
+         description,
+         url: canonicalPath,
+-        siteName: "Guia Brecho",
++        siteName: "Guia Brechó",
+         images: store.coverImageUrl ? [{ url: store.coverImageUrl, alt: `Capa da loja ${store.name}` }] : undefined
+       },
+       twitter: {
+@@ -173,8 +144,8 @@ export async function generateMetadata({ params }: StorePageProps): Promise<Meta
+     };
+   } catch {
+     return {
+-      title: "Loja | Guia Brecho",
+-      description: "Veja detalhes de lojas no Guia Brecho.",
++      title: "Loja | Guia Brechó",
++      description: "Veja detalhes de lojas no Guia Brechó.",
+       alternates: {
+         canonical: `/store/${storeId}`
+       },
+@@ -190,7 +161,7 @@ export default async function StorePage({ params }: StorePageProps) {
+   const storeId = parseStoreId(params.id);
+ 
+   if (!storeId) {
+-    return <StoreStateView title="Loja invalida." message="O identificador informado nao e um UUID valido." />;
++    return <StoreStateView title="Loja inválida." message="O identificador informado não é um UUID válido." />;
+   }
+ 
+   let store: StoreDetails | null = null;
+@@ -205,136 +176,295 @@ export default async function StorePage({ params }: StorePageProps) {
+   if (!store || error) {
+     return (
+       <StoreStateView
+-        title="Nao foi possivel abrir essa loja."
++        title="Não foi possível abrir essa loja."
+         message={error ? buildStoreErrorMessage(error) : "Falha ao carregar a loja."}
+       />
+     );
+   }
+ 
++  const primaryImage = store.images?.[0]?.url || store.coverImageUrl;
++  const secondaryImage = store.images?.[1]?.url;
++  const tertiaryImage = store.images?.[2]?.url;
++
++  const mapEmbedUrl = store.latitude && store.longitude 
++    ? `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3673.953250860361!2d${store.longitude}!3d${store.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z!5e0!3m2!1spt-BR!2sbr!4v1620000000000!5m2!1spt-BR!2sbr`
++    : null;
++
+   return (
+     <PageShell>
+-      <section className="surface-card p-8 md:p-10">
+-        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">Loja</span>
+-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--ink)] md:text-5xl">{store.name}</h1>
+-        {store.description ? (
+-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--ink-soft)] md:text-lg">
+-            {store.description}
+-          </p>
+-        ) : null}
+-        <div className="mt-6 flex flex-wrap gap-2">
+-          {store.badgeLabel ? (
+-            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1 text-sm font-medium text-[var(--ink)]">
+-              {store.badgeLabel}
+-            </span>
+-          ) : null}
+-          {store.categories.map((category) => (
+-            <span
+-              key={category}
+-              className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)]"
+-            >
+-              {category}
+-            </span>
+-          ))}
++      <div className="relative w-full h-[500px] lg:h-[600px] overflow-hidden group">
++        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10"></div>
++        {store.coverImageUrl ? (
++          <Image 
++            alt={`Interior da Loja ${store.name}`} 
++            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" 
++            src={store.coverImageUrl}
++            fill
++            priority
++            sizes="100vw"
++          />
++        ) : (
++          <div className="w-full h-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center">
++            <span className="material-icons-outlined text-6xl text-stone-400">storefront</span>
++          </div>
++        )}
++        <div className="absolute bottom-0 left-0 w-full z-20 pb-12 pt-24 bg-gradient-to-t from-black/90 to-transparent">
++          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
++            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
++              <div>
++                <h1 className="font-display font-bold text-4xl md:text-6xl text-white mb-2 leading-tight">
++                  {store.name}
++                </h1>
++                <div className="flex flex-wrap items-center gap-4 text-white/90 text-sm md:text-base">
++                  <div className="flex items-center gap-1 text-primary">
++                    <span className="material-icons-outlined text-lg">star</span>
++                    <span className="font-bold text-white">{store.rating ? store.rating.toFixed(1) : "Novo"}</span>
++                    {store.reviewCount !== null && store.reviewCount > 0 && (
++                      <span className="text-white/60">({store.reviewCount} avaliações)</span>
++                    )}
++                  </div>
++                  {store.addressLine && (
++                    <>
++                      <span className="hidden md:inline text-white/40">•</span>
++                      <div className="flex items-center gap-1">
++                        <span className="material-icons-outlined text-lg">location_on</span>
++                        <span>{store.addressLine}</span>
++                      </div>
++                    </>
++                  )}
++                  <span className="hidden md:inline text-white/40">•</span>
++                  <div className="flex items-center gap-1 text-green-400">
++                    <span className="material-icons-outlined text-lg">{store.isOnlineStore ? 'language' : 'storefront'}</span>
++                    <span>{store.isOnlineStore ? "Loja Online" : "Loja Física"}</span>
++                  </div>
++                </div>
++              </div>
++              <div className="flex flex-wrap gap-4">
++                {store.latitude && store.longitude ? (
++                  <a 
++                    href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
++                    target="_blank"
++                    rel="noopener noreferrer"
++                    className="bg-surface-light hover:bg-white text-stone-900 px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
++                  >
++                    <span className="material-icons-outlined">directions</span>
++                    Ver Rota
++                  </a>
++                ) : store.addressLine ? (
++                  <a 
++                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(store.addressLine)}`}
++                    target="_blank"
++                    rel="noopener noreferrer"
++                    className="bg-surface-light hover:bg-white text-stone-900 px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
++                  >
++                    <span className="material-icons-outlined">directions</span>
++                    Ver Rota
++                  </a>
++                ) : (
++                  <button disabled className="opacity-50 cursor-not-allowed bg-surface-light text-stone-900 px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all shadow-lg">
++                    <span className="material-icons-outlined">directions</span>
++                    Ver Rota
++                  </button>
++                )}
++                {store.phone ? (
++                  <a href={normalizePhoneHref(store.phone)} target="_blank" rel="noopener noreferrer" className="bg-secondary hover:bg-green-800 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 border border-white/10">
++                    <span className="material-icons-outlined">call</span>
++                    Ligar
++                  </a>
++                ) : (
++                   <button disabled className="opacity-50 cursor-not-allowed bg-secondary text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all shadow-lg border border-white/10">
++                    <span className="material-icons-outlined">call</span>
++                    Sem Contato
++                  </button>
++                )}
++              </div>
++            </div>
++          </div>
+         </div>
+-      </section>
+-
+-      {store.images.length > 0 ? (
+-        <section className="surface-card p-6 md:p-7">
+-          <h2 className="text-2xl font-semibold text-[var(--ink)]">Fotos da loja</h2>
+-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+-            {store.images.map((image) => (
+-              <div key={image.id} className="relative aspect-square overflow-hidden rounded-xl bg-[var(--surface-muted)]">
+-                <Image
+-                  src={image.url}
+-                  alt={`Imagem da loja ${store.name}`}
+-                  fill
+-                  sizes="(max-width: 768px) 50vw, 25vw"
+-                  className="h-full w-full object-cover"
+-                  quality={68}
+-                />
++      </div>
++
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
++        <div className="grid lg:grid-cols-12 gap-12">
++          <div className="lg:col-span-5 space-y-10">
++            <section>
++              <h3 className="font-display text-2xl font-bold text-stone-900 dark:text-white mb-4">Sobre o Brechó</h3>
++              <p className="text-stone-600 dark:text-stone-300 leading-relaxed mb-6">
++                {store.description || "Nenhuma descrição fornecida para este brechó."}
++              </p>
++              <div className="flex flex-wrap gap-2">
++                {store.categories.map((category) => (
++                  <span key={category} className="px-3 py-1 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-full text-xs font-medium">
++                    {category}
++                  </span>
++                ))}
++              </div>
++            </section>
++
++            {store.openingHours && (
++              <section className="bg-surface-light dark:bg-surface-dark p-6 rounded-2xl border border-stone-100 dark:border-stone-800 shadow-sm">
++                <div className="flex items-center gap-3 mb-6">
++                  <div className="p-2 bg-primary/10 rounded-full text-primary">
++                    <span className="material-icons-outlined">schedule</span>
++                  </div>
++                  <h3 className="font-display text-lg font-bold text-stone-900 dark:text-white">Horário de Funcionamento</h3>
++                </div>
++                <div className="text-stone-600 dark:text-stone-300 text-sm whitespace-pre-wrap leading-relaxed">
++                  {store.openingHours}
++                </div>
++              </section>
++            )}
++
++            <section>
++              <h3 className="font-display text-lg font-bold text-stone-900 dark:text-white mb-4 flex items-center gap-2">
++                <span className="material-icons-outlined text-primary">map</span>
++                Localização
++              </h3>
++              <div className="w-full h-64 bg-stone-200 dark:bg-stone-800 rounded-2xl overflow-hidden relative group cursor-pointer">
++                {mapEmbedUrl ? (
++                  <iframe 
++                    className="w-full h-full grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" 
++                    loading="lazy" 
++                    referrerPolicy="no-referrer-when-downgrade" 
++                    src={mapEmbedUrl} 
++                    style={{ border: 0 }}
++                  ></iframe>
++                ) : (
++                  <div className="w-full h-full flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 p-6 text-center">
++                    <span className="material-icons-outlined text-4xl mb-2">location_off</span>
++                    <p className="text-sm">Mapa indisponível. Endereço: {store.addressLine || 'Não informado'}</p>
++                  </div>
++                )}
++                {mapEmbedUrl && store.latitude && store.longitude && (
++                  <div className="absolute bottom-4 right-4">
++                    <a 
++                      href={`https://www.google.com/maps/search/?api=1&query=${store.latitude},${store.longitude}`}
++                      target="_blank"
++                      rel="noopener noreferrer"
++                      className="bg-white dark:bg-stone-900 text-stone-900 dark:text-white text-xs font-bold px-3 py-2 rounded-lg shadow-lg hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors inline-block"
++                    >
++                      Abrir no Maps
++                    </a>
++                  </div>
++                )}
+               </div>
+-            ))}
++            </section>
+           </div>
+-        </section>
+-      ) : null}
+ 
+-      <section className="grid gap-4 md:grid-cols-2">
+-        <article className="surface-card p-6 md:p-7">
+-          <h2 className="text-2xl font-semibold text-[var(--ink)]">Informacoes</h2>
+-          <dl className="mt-4 grid gap-3 text-sm">
+-            {store.neighborhood ? (
++          <div className="lg:col-span-7">
++            <div className="flex items-center justify-between mb-8">
+               <div>
+-                <dt className="font-semibold text-[var(--ink)]">Bairro</dt>
+-                <dd className="text-[var(--ink-soft)]">{store.neighborhood}</dd>
++                <h2 className="font-display text-3xl font-bold text-stone-900 dark:text-white">Peças em Destaque</h2>
++                <p className="text-stone-500 dark:text-stone-400 text-sm mt-1">Acervo do brechó</p>
+               </div>
+-            ) : null}
+-            {store.addressLine ? (
+-              <div>
+-                <dt className="font-semibold text-[var(--ink)]">Endereco</dt>
+-                <dd className="text-[var(--ink-soft)]">{store.addressLine}</dd>
++            </div>
++
++            {primaryImage ? (
++              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
++                {primaryImage && (
++                  <div className="group relative md:col-span-2 aspect-[16/9] rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 bg-stone-200 dark:bg-stone-800">
++                    <Image 
++                      alt="Destaque 1" 
++                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
++                      src={primaryImage}
++                      fill
++                      sizes="(max-width: 768px) 100vw, 50vw"
++                    />
++                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80"></div>
++                    <div className="absolute top-4 right-4 z-10">
++                      <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white text-white hover:text-primary transition-colors flex items-center justify-center">
++                        <span className="material-icons-outlined">favorite</span>
++                      </button>
++                    </div>
++                  </div>
++                )}
++                {secondaryImage && (
++                  <div className="group relative aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 bg-stone-200 dark:bg-stone-800">
++                    <Image 
++                      alt="Destaque 2" 
++                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
++                      src={secondaryImage}
++                      fill
++                      sizes="(max-width: 768px) 100vw, 25vw"
++                    />
++                  </div>
++                )}
++                {tertiaryImage && (
++                  <div className="group relative aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 bg-stone-200 dark:bg-stone-800">
++                    <Image 
++                      alt="Destaque 3" 
++                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
++                      src={tertiaryImage}
++                      fill
++                      sizes="(max-width: 768px) 100vw, 25vw"
++                    />
++                  </div>
++                )}
+               </div>
+-            ) : null}
+-            {store.openingHours ? (
+-              <div>
+-                <dt className="font-semibold text-[var(--ink)]">Horario</dt>
+-                <dd className="text-[var(--ink-soft)]">{store.openingHours}</dd>
++            ) : (
++              <div className="p-8 border border-dashed border-stone-200 dark:border-stone-800 rounded-2xl text-center text-stone-500 dark:text-stone-400">
++                Nenhuma foto do acervo disponível no momento.
+               </div>
+-            ) : null}
+-            <div>
+-              <dt className="font-semibold text-[var(--ink)]">Avaliacao</dt>
+-              <dd className="text-[var(--ink-soft)]">{formatRating(store.rating, store.reviewCount)}</dd>
+-            </div>
+-            <div>
+-              <dt className="font-semibold text-[var(--ink)]">Tipo</dt>
+-              <dd className="text-[var(--ink-soft)]">{store.isOnlineStore ? "Loja online" : "Loja fisica"}</dd>
+-            </div>
+-          </dl>
+-        </article>
+-
+-        <article className="surface-card p-6 md:p-7">
+-          <h2 className="text-2xl font-semibold text-[var(--ink)]">Contato e redes</h2>
+-          <div className="mt-4 grid gap-3">
+-            {store.website ? (
+-              <a className="button secondary" href={store.website} target="_blank" rel="noreferrer noopener">
+-                Site oficial
+-              </a>
+-            ) : null}
+-            {store.instagram ? (
+-              <a
+-                className="button secondary"
+-                href={normalizeInstagramHref(store.instagram)}
+-                target="_blank"
+-                rel="noreferrer noopener"
+-              >
+-                Instagram
+-              </a>
+-            ) : null}
+-            {store.facebook ? (
+-              <a className="button secondary" href={store.facebook} target="_blank" rel="noreferrer noopener">
+-                Facebook
+-              </a>
+-            ) : null}
++            )}
++
+             {store.phone ? (
+-              <a className="button secondary" href={normalizePhoneHref(store.phone)}>
+-                Ligar: {store.phone}
+-              </a>
+-            ) : null}
+-            {store.whatsapp ? (
+-              <a
+-                className="button secondary"
+-                href={normalizeWhatsappHref(store.whatsapp)}
+-                target="_blank"
+-                rel="noreferrer noopener"
+-              >
+-                WhatsApp: {store.whatsapp}
+-              </a>
+-            ) : null}
+-            {!store.website && !store.instagram && !store.facebook && !store.phone && !store.whatsapp ? (
+-              <p className="text-sm text-[var(--ink-soft)]">Nenhum canal de contato disponivel no momento.</p>
++              <div className="mt-8 bg-secondary/5 border border-secondary/20 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
++                <div className="flex items-center gap-4">
++                  <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center text-secondary dark:text-green-400">
++                    <span className="material-icons-outlined">chat</span>
++                  </div>
++                  <div>
++                    <h4 className="font-bold text-secondary dark:text-green-400">Contato Rápido</h4>
++                    <p className="text-sm text-stone-600 dark:text-stone-400">Tire suas dúvidas diretamente com a loja.</p>
++                  </div>
++                </div>
++                <a 
++                  href={normalizeWhatsappHref(store.phone)} 
++                  target="_blank" 
++                  rel="noopener noreferrer" 
++                  className="bg-secondary hover:bg-green-800 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all shadow-lg border border-white/10"
++                >
++                  Abrir WhatsApp
++                </a>
++              </div>
+             ) : null}
+           </div>
+-        </article>
+-      </section>
++        </div>
++      </div>
++
++      <div className="bg-surface-light dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 py-16">
++        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
++          <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary">
++            <span className="material-icons-outlined text-3xl">forum</span>
++          </div>
++          
++          {store.reviewCount && store.reviewCount > 0 ? (
++            <>
++              <h2 className="font-display text-3xl font-bold text-stone-900 dark:text-white mb-4">
++                O que dizem os garimpeiros
++              </h2>
++              <p className="text-stone-600 dark:text-stone-300 text-lg leading-relaxed mb-8">
++                Esta loja possui <strong>{store.reviewCount} avaliações</strong> com nota média de <strong>{store.rating?.toFixed(1)}</strong>. Baixe o app do Guia Brechó para ler os relatos completos e deixar sua própria experiência!
++              </p>
++            </>
++          ) : (
++            <>
++              <h2 className="font-display text-3xl font-bold text-stone-900 dark:text-white mb-4">
++                Seja o primeiro a avaliar!
++              </h2>
++              <p className="text-stone-600 dark:text-stone-300 text-lg leading-relaxed mb-8">
++                Já visitou o <strong>{store.name}</strong>? Baixe o app do Guia Brechó para compartilhar sua experiência, dar dicas sobre o acervo e ajudar outros garimpeiros.
++              </p>
++            </>
++          )}
++
++          <DownloadAppButton 
++            className="inline-flex items-center justify-center bg-primary hover:bg-yellow-600 text-white px-8 py-4 rounded-full font-bold text-lg transition-transform transform hover:-translate-y-1 shadow-lg shadow-primary/30 gap-2"
++          >
++            <span className="material-icons-outlined">smartphone</span>
++            Abrir no App
++          </DownloadAppButton>
++        </div>
++      </div>
+     </PageShell>
+   );
+ }
+diff --git a/package.json b/package.json
+index 9b823e1..812d8a9 100644
+--- a/package.json
++++ b/package.json
+@@ -17,11 +17,13 @@
+     "mixpanel-browser": "^2.75.0",
+     "next": "^14.2.5",
+     "react": "^18.3.1",
+-    "react-dom": "^18.3.1"
++    "react-dom": "^18.3.1",
++    "react-markdown": "^10.1.0"
+   },
+   "devDependencies": {
+     "@playwright/test": "^1.58.2",
+     "@tailwindcss/postcss": "^4.1.18",
++    "@tailwindcss/typography": "^0.5.19",
+     "@types/mixpanel-browser": "^2.60.0",
+     "@types/node": "^22.7.4",
+     "@types/react": "^18.3.11",
+diff --git a/src/featuredStores/ui/FeaturedStoresSection.tsx b/src/featuredStores/ui/FeaturedStoresSection.tsx
+index 5ed3dc0..da449b6 100644
+--- a/src/featuredStores/ui/FeaturedStoresSection.tsx
++++ b/src/featuredStores/ui/FeaturedStoresSection.tsx
+@@ -12,52 +12,53 @@ type FeaturedStoresSectionProps = {
+ 
+ export default function FeaturedStoresSection({ stores }: FeaturedStoresSectionProps) {
+   return (
+-    <section className="surface-card p-6 md:p-8">
+-      <div className="mb-6 flex items-end justify-between gap-4">
+-        <div>
+-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--ink-muted)]">
+-            Brechós em destaque
+-          </p>
+-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--ink)] md:text-4xl">
+-            Curadoria especial da semana
+-          </h2>
++    <section className="py-24 bg-white dark:bg-stone-900/50">
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
++        <div className="flex flex-col md:flex-row justify-between items-end mb-12">
++          <div>
++            <span className="text-primary font-bold tracking-wider text-xs uppercase mb-2 block">Brechós em Destaque</span>
++            <h2 className="font-display text-4xl font-bold text-stone-900 dark:text-white">Curadoria especial da semana</h2>
++          </div>
+         </div>
+-      </div>
+ 
+-      {stores.length > 0 ? (
+-        <div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2">
+-          {stores.map((store) => (
+-            <article
+-              key={store.id}
+-              className="group min-w-[260px] max-w-[260px] snap-start overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)]"
+-            >
+-              <Link 
+-                href={`/store/${store.id}` as Route} 
+-                className="block"
+-                onClick={() => trackEvent("Featured Store Clicked", { storeId: store.id, storeName: store.name })}
+-              >
+-                <div className="relative aspect-square overflow-hidden bg-[var(--surface-muted)]">
+-                  <Image
+-                    src={store.coverImageUrl}
+-                    alt={`Capa do brechó ${store.name}`}
+-                    fill
+-                    sizes="(max-width: 768px) 70vw, 260px"
+-                    quality={68}
+-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+-                  />
+-                </div>
+-                <div className="p-4">
+-                  <h3 className="text-lg font-semibold text-[var(--ink)]">{store.name}</h3>
+-                </div>
+-              </Link>
+-            </article>
+-          ))}
+-        </div>
+-      ) : (
+-        <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-5 text-sm text-[var(--ink-soft)]">
+-          Não conseguimos carregar os brechós em destaque agora.
+-        </div>
+-      )}
++        {stores.length > 0 ? (
++          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
++            {stores.slice(0, 4).map((store) => (
++              <div key={store.id} className="group cursor-pointer">
++                <Link 
++                  href={`/store/${store.id}` as Route} 
++                  className="block"
++                  onClick={() => trackEvent("Featured Store Clicked", { storeId: store.id, storeName: store.name })}
++                >
++                  <div className="relative overflow-hidden rounded-2xl aspect-[3/4] mb-4 bg-stone-200 dark:bg-stone-800">
++                    {store.coverImageUrl && (
++                      <Image
++                        src={store.coverImageUrl}
++                        alt={`Capa do brechó ${store.name}`}
++                        fill
++                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
++                        quality={75}
++                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
++                      />
++                    )}
++                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
++                    <button className="absolute top-4 right-4 w-8 h-8 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white hover:text-primary transition-all">
++                      <span className="material-icons-outlined text-sm">favorite_border</span>
++                    </button>
++                  </div>
++                  <h3 className="font-display font-bold text-xl text-stone-900 dark:text-white group-hover:text-primary transition-colors">{store.name}</h3>
++                  {/* Assuming location and niche might not be available, falling back to simple description */}
++                  <p className="text-sm text-stone-500 dark:text-stone-400 truncate">Brechó Destaque</p>
++                </Link>
++              </div>
++            ))}
++          </div>
++        ) : (
++          <div className="rounded-2xl border border-dashed border-stone-200 dark:border-stone-800 bg-surface-light dark:bg-surface-dark p-8 text-sm text-stone-600 dark:text-stone-400">
++            Não conseguimos carregar os brechós em destaque agora.
++          </div>
++        )}
++      </div>
+     </section>
+   );
+ }
+diff --git a/src/siteContents/ui/CommentsSection.tsx b/src/siteContents/ui/CommentsSection.tsx
+index 58082d9..1dbdc7d 100644
+--- a/src/siteContents/ui/CommentsSection.tsx
++++ b/src/siteContents/ui/CommentsSection.tsx
+@@ -7,16 +7,22 @@ import type { GuideContentCommentDto, PageResponse } from "../types";
+ import { trackEvent } from "../../analytics/mixpanel";
+ 
+ type CommentsSectionProps = {
++  contentId: number;
+   comments: PageResponse<GuideContentCommentDto> | null;
+   commentsErrorMessage?: string | null;
+-  buildPageHref: (page: number) => Route;
+ };
+ 
+ export default function CommentsSection({
++  contentId,
+   comments,
+-  commentsErrorMessage,
+-  buildPageHref
++  commentsErrorMessage
+ }: CommentsSectionProps) {
++  const buildPageHref = (page: number): Route => {
++    const params = new URLSearchParams();
++    params.set("commentsPage", String(Math.max(0, page)));
++    return `/content/${contentId}?${params.toString()}` as Route;
++  };
++
+   return (
+     <section className="surface-card comments-section p-6">
+       <h2>Comentários</h2>
+diff --git a/src/siteContents/ui/FeaturedContentsSection.tsx b/src/siteContents/ui/FeaturedContentsSection.tsx
+index 6958895..e9b6d5c 100644
+--- a/src/siteContents/ui/FeaturedContentsSection.tsx
++++ b/src/siteContents/ui/FeaturedContentsSection.tsx
+@@ -15,7 +15,7 @@ type FeaturedContentsSectionProps = {
+   featured: FeaturedContentState;
+ };
+ 
+-const MAX_DESCRIPTION_PREVIEW_LENGTH = 220;
++const MAX_DESCRIPTION_PREVIEW_LENGTH = 180;
+ 
+ function truncatePreview(text: string, maxLength = MAX_DESCRIPTION_PREVIEW_LENGTH): string {
+   const normalized = text.replace(/\s+/g, " ").trim();
+@@ -27,123 +27,95 @@ function truncatePreview(text: string, maxLength = MAX_DESCRIPTION_PREVIEW_LENGT
+ }
+ 
+ export default function FeaturedContentsSection({ featured }: FeaturedContentsSectionProps) {
+-  const [primary, ...secondary] = featured.items;
++  const displayItems = featured.items.slice(0, 2);
+ 
+   return (
+-    <section className="surface-card p-6 md:p-8">
+-      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+-        Conteúdos
+-      </p>
+-      <h2 className="mt-2 text-3xl font-semibold leading-tight text-[var(--ink)] md:text-5xl">
+-        Dicas fresquinhas para seu próximo garimpo.
+-      </h2>
+-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--ink-soft)] md:text-base">
+-        Veja publicações recentes da comunidade e descubra novos brechós e tendências.
+-      </p>
+-
+-      {featured.items.length > 0 ? (
+-        <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+-          {primary ? (
+-            <article className="group overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)]">
+-              <Link 
+-                href={`/content/${primary.id}` as Route} 
+-                className="grid h-full gap-4 md:grid-cols-2"
+-                onClick={() => trackEvent("Featured Content Clicked", { contentId: primary.id, title: primary.title, type: "primary" })}
+-              >
+-                <div className="relative min-h-[260px] overflow-hidden bg-[var(--surface)]">
+-                  {primary.imageUrl ? (
+-                    <Image
+-                      src={primary.imageUrl}
+-                      alt={`Imagem de ${primary.title}`}
+-                      fill
+-                      sizes="(max-width: 768px) 100vw, 50vw"
+-                      quality={70}
+-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+-                      loading="lazy"
+-                    />
+-                  ) : (
+-                    <div className="flex h-full items-center justify-center text-sm text-[var(--accent-3)]">
+-                      Sem imagem
+-                    </div>
+-                  )}
+-                </div>
+-
+-                <div className="flex flex-col gap-3 p-6">
+-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-3)]">
+-                    {primary.thriftStoreName || "Comunidade"}
+-                  </p>
+-                  <h3 className="text-2xl font-semibold leading-tight text-[var(--ink)]">
+-                    {primary.title}
+-                  </h3>
+-                  <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+-                    {truncatePreview(primary.description, 260)}
+-                  </p>
+-                  <p className="mt-auto text-xs text-[var(--ink-muted)]">
+-                    {formatDateShort(primary.createdAt)} • {primary.commentCount} comentários
+-                  </p>
+-                </div>
+-              </Link>
+-            </article>
+-          ) : null}
++    <section className="py-24">
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
++        <div className="mb-12">
++          <span className="text-primary font-bold tracking-wider text-xs uppercase mb-2 block">Conteúdos</span>
++          <h2 className="font-display text-4xl lg:text-5xl font-bold text-stone-900 dark:text-white mb-4">
++            Dicas fresquinhas para seu <br className="hidden md:block" />próximo garimpo.
++          </h2>
++          <p className="text-stone-600 dark:text-stone-400 max-w-2xl">
++            Veja publicações recentes da comunidade e descubra novos brechós e tendências.
++          </p>
++        </div>
+ 
+-          <div className="grid gap-4">
+-            {secondary.slice(0, 2).map((content) => (
+-              <article key={content.id} className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
++        {featured.items.length > 0 ? (
++          <div className="grid lg:grid-cols-2 gap-8">
++            {displayItems.map((content, index) => (
++              <article key={content.id} className="flex flex-col md:flex-row bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden border border-stone-100 dark:border-stone-800 shadow-sm hover:shadow-xl transition-all duration-300 h-full group">
+                 <Link 
+-                  href={`/content/${content.id}` as Route} 
+-                  className="grid h-full gap-3 sm:grid-cols-[120px_minmax(0,1fr)]"
+-                  onClick={() => trackEvent("Featured Content Clicked", { contentId: content.id, title: content.title, type: "secondary" })}
++                  href={`/content/${content.id}` as Route}
++                  className="flex flex-col md:flex-row w-full h-full"
++                  onClick={() => trackEvent("Featured Content Clicked", { contentId: content.id, title: content.title })}
+                 >
+-                  <div className="relative min-h-[120px] bg-[var(--surface-muted)]">
++                  <div className="md:w-2/5 h-64 md:h-auto bg-stone-200 relative overflow-hidden">
+                     {content.imageUrl ? (
+                       <Image
+                         src={content.imageUrl}
+                         alt={`Imagem de ${content.title}`}
+                         fill
+-                        sizes="120px"
+-                        quality={65}
+-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
++                        sizes="(max-width: 768px) 100vw, 40vw"
++                        quality={70}
++                        className="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                         loading="lazy"
+                       />
+                     ) : (
+-                      <div className="flex h-full items-center justify-center text-xs text-[var(--accent-3)]">
+-                        Sem imagem
+-                      </div>
++                      <div className="flex h-full items-center justify-center text-sm text-stone-500">Sem imagem</div>
+                     )}
+                   </div>
+-
+-                  <div className="flex min-h-[120px] flex-col gap-2 p-4">
+-                    <h3 className="text-base font-semibold leading-snug text-[var(--ink)]">
+-                      {content.title}
+-                    </h3>
+-                    <p className="text-xs leading-relaxed text-[var(--ink-soft)]">
+-                      {truncatePreview(content.description, 120)}
+-                    </p>
+-                    <p className="mt-auto text-xs text-[var(--ink-muted)]">
+-                      {formatDateShort(content.createdAt)}
+-                    </p>
++                  <div className="p-8 md:w-3/5 flex flex-col justify-between">
++                    <div>
++                      <span className={`text-xs font-bold mb-2 block uppercase tracking-wider ${index === 0 ? 'text-primary' : 'text-secondary dark:text-green-400'}`}>
++                        {content.thriftStoreName || "Guia Brechó"}
++                      </span>
++                      {index === 0 && (
++                        <div className="flex items-center gap-2 mb-3">
++                          <span className="material-icons-outlined text-primary text-sm">star</span>
++                          <h3 className="font-display font-bold text-xl text-stone-900 dark:text-white leading-tight">{content.title}</h3>
++                        </div>
++                      )}
++                      {index !== 0 && (
++                        <h3 className="font-display font-bold text-xl text-stone-900 dark:text-white leading-tight mb-3">{content.title}</h3>
++                      )}
++                      <p className="text-stone-600 dark:text-stone-400 text-sm line-clamp-4 mb-4">
++                        {truncatePreview(content.description)}
++                      </p>
++                    </div>
++                    <div className="flex items-center justify-between border-t border-stone-200 dark:border-stone-700 pt-4 mt-4">
++                      <span className="text-xs text-stone-400">{formatDateShort(content.createdAt)}</span>
++                      {index === 0 ? (
++                        <span className="text-xs text-stone-400">{content.commentCount} comentários</span>
++                      ) : (
++                        <span className="text-xs font-bold text-primary hover:text-yellow-600 flex items-center">
++                          Ler mais <span className="material-icons-outlined text-sm ml-1">arrow_forward</span>
++                        </span>
++                      )}
++                    </div>
+                   </div>
+                 </Link>
+               </article>
+             ))}
+           </div>
+-        </div>
+-      ) : (
+-        <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-5 text-sm text-[var(--ink-soft)]">
+-          {featured.blockedByAuth
+-            ? "A API de conteúdos ainda está protegida por autenticação (401). Assim que o backend liberar acesso público, esta seção será preenchida automaticamente."
+-            : "Não foi possível carregar os conteúdos agora. Acesse a listagem completa para tentar novamente."}
+-        </div>
+-      )}
++        ) : (
++          <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-surface-light dark:bg-surface-dark p-8 text-sm text-stone-600 dark:text-stone-400">
++            {featured.blockedByAuth
++              ? "A API de conteúdos ainda está protegida por autenticação (401). Assim que o backend liberar acesso público, esta seção será preenchida automaticamente."
++              : "Não foi possível carregar os conteúdos agora. Acesse a listagem completa para tentar novamente."}
++          </div>
++        )}
+ 
+-      <div className="mt-6 flex justify-end">
+-        <Link
+-          href="/contents"
+-          className="inline-flex w-fit items-center justify-center rounded-full border border-[var(--border)] bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[var(--accent-2)]"
+-          onClick={() => trackEvent("View More Contents Clicked")}
+-        >
+-          Ver mais
+-        </Link>
++        <div className="mt-12 text-center">
++          <Link
++            href="/contents"
++            className="inline-block bg-primary hover:bg-yellow-600 text-white px-8 py-3 rounded-full font-medium transition-transform transform hover:-translate-y-1 shadow-lg shadow-primary/30"
++            onClick={() => trackEvent("View More Contents Clicked")}
++          >
++            Ver mais conteúdos
++          </Link>
++        </div>
+       </div>
+     </section>
+   );
+diff --git a/src/theme/ThemeToggleButton.tsx b/src/theme/ThemeToggleButton.tsx
+index 8db2d7b..e299564 100644
+--- a/src/theme/ThemeToggleButton.tsx
++++ b/src/theme/ThemeToggleButton.tsx
+@@ -1,7 +1,7 @@
+ "use client";
+ 
+ import { useEffect, useState } from "react";
+-import { THEME_STORAGE_KEY, applyTheme, normalizeTheme, type ThemePreference } from "./theme";
++import { THEME_STORAGE_KEY, applyTheme, type ThemePreference } from "./theme";
+ import { trackEvent } from "../analytics/mixpanel";
+ 
+ type ThemeToggleButtonProps = {
+@@ -12,18 +12,17 @@ function nextTheme(theme: ThemePreference): ThemePreference {
+   return theme === "light" ? "dark" : "light";
+ }
+ 
+-const defaultButtonClassName =
+-  "inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]";
++const defaultButtonClassName = "p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-stone-600 dark:text-stone-300";
+ 
+ export default function ThemeToggleButton({ className }: ThemeToggleButtonProps) {
+   const [theme, setTheme] = useState<ThemePreference>("light");
+-  const [mounted, setMounted] = useState(false);
+ 
+   useEffect(() => {
+-    const stored = normalizeTheme(window.localStorage.getItem(THEME_STORAGE_KEY));
+-    setTheme(stored);
+-    applyTheme(stored);
+-    setMounted(true);
++    const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
++    const stored = window.localStorage.getItem(THEME_STORAGE_KEY) as ThemePreference | null;
++    const initialTheme = stored || systemPreference;
++    setTheme(initialTheme);
++    applyTheme(initialTheme);
+   }, []);
+ 
+   const handleToggle = () => {
+@@ -47,9 +46,8 @@ export default function ThemeToggleButton({ className }: ThemeToggleButtonProps)
+       onClick={handleToggle}
+       className={resolvedClassName}
+     >
+-      <span aria-hidden className="text-lg leading-none">
+-        {mounted && theme === "dark" ? "☀" : "☾"}
+-      </span>
++      <span aria-hidden className="material-icons-outlined dark:hidden">dark_mode</span>
++      <span aria-hidden className="material-icons-outlined hidden dark:block">light_mode</span>
+     </button>
+   );
+ }
+diff --git a/src/ui/DownloadAppButton.tsx b/src/ui/DownloadAppButton.tsx
+new file mode 100644
+index 0000000..2202e52
+--- /dev/null
++++ b/src/ui/DownloadAppButton.tsx
+@@ -0,0 +1,35 @@
++"use client";
++
++import { useEffect, useState } from "react";
++import { androidStoreUrl, iosStoreUrl } from "../urls";
++
++type DownloadAppButtonProps = {
++  className?: string;
++  children: React.ReactNode;
++};
++
++export default function DownloadAppButton({ className, children }: DownloadAppButtonProps) {
++  const [storeUrl, setStoreUrl] = useState(androidStoreUrl);
++
++  useEffect(() => {
++    const userAgent = navigator.userAgent.toLowerCase();
++    const platform = navigator.platform.toLowerCase();
++    const isAppleDevice =
++      /(iphone|ipad|ipod)/.test(userAgent) ||
++      platform.includes("mac") ||
++      userAgent.includes("macintosh");
++
++    setStoreUrl(isAppleDevice ? iosStoreUrl : androidStoreUrl);
++  }, []);
++
++  return (
++    <a
++      href={storeUrl}
++      target="_blank"
++      rel="noopener noreferrer"
++      className={className}
++    >
++      {children}
++    </a>
++  );
++}
+\ No newline at end of file
+diff --git a/src/ui/PageShell.tsx b/src/ui/PageShell.tsx
+index 4785bb5..75341a4 100644
+--- a/src/ui/PageShell.tsx
++++ b/src/ui/PageShell.tsx
+@@ -2,49 +2,24 @@ import type { ReactNode } from "react";
+ import SiteFooter from "./SiteFooter";
+ import SiteHeader from "./SiteHeader";
+ 
+-type PageShellBackgroundVariant = "default" | "home";
+-
+ type PageShellProps = {
+   children: ReactNode;
+-  backgroundVariant?: PageShellBackgroundVariant;
+   contentClassName?: string;
+   showFooter?: boolean;
+ };
+ 
+-const DEFAULT_CONTENT_CLASS_NAME =
+-  "section-shell relative z-10 flex flex-col gap-8 pb-16 pt-28 md:pt-32";
+-
+-function renderBackground(variant: PageShellBackgroundVariant) {
+-  if (variant === "home") {
+-    return (
+-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+-        <div className="absolute -top-40 right-[-14rem] h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.24),_rgba(245,158,11,0))] blur-3xl" />
+-        <div className="absolute bottom-[-14rem] left-[-8rem] h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(circle_at_center,_rgba(56,189,248,0.16),_rgba(56,189,248,0))] blur-3xl" />
+-      </div>
+-    );
+-  }
+-
+-  return (
+-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+-      <div className="absolute -top-40 right-[-14rem] h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.22),_rgba(245,158,11,0))] blur-3xl" />
+-    </div>
+-  );
+-}
+-
+ export default function PageShell({
+   children,
+-  backgroundVariant = "default",
+-  contentClassName = DEFAULT_CONTENT_CLASS_NAME,
++  contentClassName = "",
+   showFooter = true
+ }: PageShellProps) {
+   return (
+-    <main className="relative min-h-screen [overflow-x:clip] text-[var(--ink)]">
++    <>
+       <SiteHeader />
+-      {renderBackground(backgroundVariant)}
+-      <div className={contentClassName}>
++      <main className={contentClassName}>
+         {children}
+-        {showFooter ? <SiteFooter /> : null}
+-      </div>
+-    </main>
++      </main>
++      {showFooter ? <SiteFooter /> : null}
++    </>
+   );
+ }
+diff --git a/src/ui/SiteFooter.tsx b/src/ui/SiteFooter.tsx
+index 6ce1b3b..3f684f5 100644
+--- a/src/ui/SiteFooter.tsx
++++ b/src/ui/SiteFooter.tsx
+@@ -9,61 +9,71 @@ const platformLinks = [
+ 
+ const supportLinks = [
+   { href: "/privacy-policy", label: "Política de Privacidade" },
+-  { href: "/terms-eula", label: "Terms & EULA" },
+-  { href: "/support", label: "Suporte" },
+-  { href: "/contents", label: "Central de Conteúdos" }
++  { href: "/terms-eula", label: "Termos & EULA" },
++  { href: "/support", label: "Central de Ajuda" },
++  { href: "/contents", label: "Fale Conosco" }
+ ];
+ 
+ export default function SiteFooter() {
+   return (
+-    <footer className="surface-card mt-8 p-6 md:p-8">
+-      <div className="grid gap-8 md:grid-cols-3">
+-        <section>
+-          <h2 className="text-lg font-semibold text-[var(--ink)]">Guia Brechó</h2>
+-          <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
+-            Conectando quem ama garimpo aos melhores achados da cidade.
+-          </p>
+-        </section>
+-
+-        <section>
+-          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
+-            Plataforma
+-          </h3>
+-          <ul className="mt-3 space-y-2">
+-            {platformLinks.map((item) => (
+-              <li key={item.href}>
+-                <Link
+-                  href={item.href as Route}
+-                  className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--accent)]"
+-                >
+-                  {item.label}
+-                </Link>
+-              </li>
+-            ))}
+-          </ul>
+-        </section>
+-
+-        <section>
+-          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ink-muted)]">
+-            Suporte
+-          </h3>
+-          <ul className="mt-3 space-y-2">
+-            {supportLinks.map((item) => (
+-              <li key={item.href}>
+-                <Link
+-                  href={item.href as Route}
+-                  className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--accent)]"
+-                >
+-                  {item.label}
+-                </Link>
+-              </li>
+-            ))}
+-          </ul>
+-        </section>
+-      </div>
+-
+-      <div className="mt-8 border-t border-[var(--border)] pt-5 text-xs text-[var(--ink-muted)]">
+-        © {new Date().getFullYear()} Guia Brechó. Todos os direitos reservados.
++    <footer className="bg-surface-light dark:bg-surface-dark pt-16 pb-8 border-t border-stone-200 dark:border-stone-800">
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
++        <div className="grid md:grid-cols-4 gap-12 mb-16">
++          <div className="col-span-1 md:col-span-2">
++            <div className="flex items-center gap-3 mb-6">
++              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
++                <span className="material-icons-outlined text-sm">storefront</span>
++              </div>
++              <span className="font-display font-bold text-lg text-stone-900 dark:text-white">Guia Brechó</span>
++            </div>
++            <p className="text-stone-500 dark:text-stone-400 text-sm leading-relaxed max-w-sm mb-6">
++              Conectando quem ama garimpo aos melhores achados da cidade. Apoiamos a moda circular e o consumo consciente.
++            </p>
++            <div className="flex space-x-4">
++              <a href="#" className="text-stone-400 hover:text-primary transition-colors"><span className="material-icons-outlined">facebook</span></a>
++              <a href="#" className="text-stone-400 hover:text-primary transition-colors"><span className="material-icons-outlined">camera_alt</span></a>
++              <a href="#" className="text-stone-400 hover:text-primary transition-colors"><span className="material-icons-outlined">alternate_email</span></a>
++            </div>
++          </div>
++          <div>
++            <h4 className="font-bold text-stone-900 dark:text-white text-sm uppercase tracking-wider mb-6">Plataforma</h4>
++            <ul className="space-y-3">
++              {platformLinks.map((item) => (
++                <li key={item.href}>
++                  <Link
++                    href={item.href as Route}
++                    className="text-stone-600 dark:text-stone-400 hover:text-primary dark:hover:text-primary text-sm transition-colors"
++                  >
++                    {item.label}
++                  </Link>
++                </li>
++              ))}
++            </ul>
++          </div>
++          <div>
++            <h4 className="font-bold text-stone-900 dark:text-white text-sm uppercase tracking-wider mb-6">Suporte</h4>
++            <ul className="space-y-3">
++              {supportLinks.map((item) => (
++                <li key={item.href}>
++                  <Link
++                    href={item.href as Route}
++                    className="text-stone-600 dark:text-stone-400 hover:text-primary dark:hover:text-primary text-sm transition-colors"
++                  >
++                    {item.label}
++                  </Link>
++                </li>
++              ))}
++            </ul>
++          </div>
++        </div>
++        <div className="border-t border-stone-200 dark:border-stone-700 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-stone-500 dark:text-stone-500">
++          <p>© {new Date().getFullYear()} Guia Brechó. Todos os direitos reservados.</p>
++          <div className="mt-4 md:mt-0 flex space-x-6">
++            <Link href="/privacy-policy" className="hover:text-stone-900 dark:hover:text-stone-300">Privacidade</Link>
++            <Link href="/terms-eula" className="hover:text-stone-900 dark:hover:text-stone-300">Termos</Link>
++            <Link href="/privacy-policy" className="hover:text-stone-900 dark:hover:text-stone-300">Cookies</Link>
++          </div>
++        </div>
+       </div>
+     </footer>
+   );
+diff --git a/src/ui/SiteHeader.tsx b/src/ui/SiteHeader.tsx
+index 1a7ef20..6ef9d87 100644
+--- a/src/ui/SiteHeader.tsx
++++ b/src/ui/SiteHeader.tsx
+@@ -1,7 +1,6 @@
+ "use client";
+ 
+ import { useEffect, useState } from "react";
+-import Image from "next/image";
+ import Link from "next/link";
+ import type { Route } from "next";
+ import { usePathname, useRouter } from "next/navigation";
+@@ -23,10 +22,8 @@ const navItems: HeaderNavItem[] = [
+   { kind: "section", sectionId: "destaques", label: "Destaques" }
+ ];
+ 
+-const desktopNavItemClasses =
+-  "rounded-full px-3 py-2 text-sm font-semibold text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--accent)]";
+-const mobileNavItemClasses =
+-  "rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--ink)]";
++const desktopNavItemClasses = "text-stone-600 dark:text-stone-300 hover:text-primary dark:hover:text-primary transition-colors font-medium";
++const mobileNavItemClasses = "block px-4 py-3 text-stone-600 dark:text-stone-300 font-medium hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors";
+ 
+ export default function SiteHeader() {
+   const router = useRouter();
+@@ -63,33 +60,20 @@ export default function SiteHeader() {
+   };
+ 
+   return (
+-    <header
+-      data-site-header
+-      className="fixed inset-x-0 top-0 z-40 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md"
+-    >
+-      <div className="section-shell flex h-20 items-center justify-between gap-3">
+-        <Link href="/" className="group inline-flex items-center gap-3">
+-          <span className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)]">
+-            <Image
+-              src="/assets/images/app-icon.png"
+-              alt="Guia Brechó logo"
+-              width={44}
+-              height={44}
+-              priority
+-            />
+-          </span>
+-          <span>
+-            <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-[var(--ink-muted)]">
+-              Guia Brechó
+-            </span>
+-            <span className="hidden text-sm font-semibold text-[var(--ink)] sm:block">
+-              Seu radar de achados conscientes
+-            </span>
+-          </span>
+-        </Link>
+-
+-        <div className="flex items-center gap-2">
+-          <nav className="hidden items-center gap-4 md:flex">
++    <nav className="sticky top-0 z-50 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-700">
++      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
++        <div className="flex justify-between items-center h-20">
++          <Link href="/" className="flex items-center gap-3">
++            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
++              <span className="material-icons-outlined">storefront</span>
++            </div>
++            <div className="flex flex-col">
++              <span className="font-display font-bold text-xl text-stone-900 dark:text-white leading-tight">Guia Brechó</span>
++              <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">Radar de achados</span>
++            </div>
++          </Link>
++          
++          <div className="hidden md:flex space-x-8 items-center">
+             {navItems.map((item) =>
+               item.kind === "route" ? (
+                 <Link key={item.href} href={item.href} className={desktopNavItemClasses}>
+@@ -106,33 +90,35 @@ export default function SiteHeader() {
+                 </button>
+               )
+             )}
+-
++            
+             <a
+               href={storeUrl}
+               target="_blank"
+               rel="noopener noreferrer"
+-              className="inline-flex items-center rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--accent-2)]"
++              className="bg-primary hover:bg-yellow-600 text-white px-6 py-2.5 rounded-full font-medium transition-transform transform hover:-translate-y-0.5 shadow-lg shadow-primary/30"
+             >
+               Baixar App
+             </a>
+-          </nav>
+-
+-          <ThemeToggleButton className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]" />
+-          <button
+-            type="button"
+-            aria-expanded={isMobileMenuOpen}
+-            aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+-            onClick={() => setIsMobileMenuOpen((currentState) => !currentState)}
+-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-lg text-[var(--ink)] shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:hidden"
+-          >
+-            <span aria-hidden>{isMobileMenuOpen ? "✕" : "☰"}</span>
+-          </button>
++            
++            <ThemeToggleButton />
++          </div>
++
++          <div className="md:hidden flex items-center">
++            <ThemeToggleButton className="p-2 mr-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-stone-600 dark:text-stone-300" />
++            <button 
++              className="text-stone-600 dark:text-stone-300 hover:text-primary"
++              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
++              aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
++            >
++              <span className="material-icons-outlined text-3xl">{isMobileMenuOpen ? "close" : "menu"}</span>
++            </button>
++          </div>
+         </div>
+       </div>
+ 
+       {isMobileMenuOpen ? (
+-        <div className="border-t border-[var(--border)] bg-[var(--surface)]/95 md:hidden">
+-          <nav className="section-shell grid gap-2 py-4">
++        <div className="md:hidden bg-surface-light dark:bg-surface-dark border-t border-stone-200 dark:border-stone-700 p-4 absolute w-full shadow-xl">
++          <div className="flex flex-col space-y-2">
+             {navItems.map((item) =>
+               item.kind === "route" ? (
+                 <Link
+@@ -148,7 +134,7 @@ export default function SiteHeader() {
+                   key={item.sectionId}
+                   type="button"
+                   onClick={() => navigateToSection(item.sectionId, true)}
+-                  className={mobileNavItemClasses}
++                  className={`text-left ${mobileNavItemClasses}`}
+                 >
+                   {item.label}
+                 </button>
+@@ -159,13 +145,13 @@ export default function SiteHeader() {
+               target="_blank"
+               rel="noopener noreferrer"
+               onClick={() => setIsMobileMenuOpen(false)}
+-              className="mt-1 inline-flex items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--accent-2)]"
++              className="mt-4 text-center bg-primary hover:bg-yellow-600 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+             >
+               Baixar App
+             </a>
+-          </nav>
++          </div>
+         </div>
+       ) : null}
+-    </header>
++    </nav>
+   );
+ }
+diff --git a/tailwind.config.js b/tailwind.config.js
+index 2daebd2..1fadc1e 100644
+--- a/tailwind.config.js
++++ b/tailwind.config.js
+@@ -4,22 +4,39 @@ module.exports = {
+   content: ["./app/**/*.{js,ts,jsx,tsx,mdx}", "./src/**/*.{js,ts,jsx,tsx,mdx}"],
+   theme: {
+     extend: {
++      colors: {
++        primary: "#D97706",
++        secondary: "#14532D",
++        cream: "#FDFBF7",
++        "off-white": "#F9F9F9",
++        "background-light": "#F5EFE6",
++        "background-dark": "#1C1917",
++        "surface-light": "#FFFFFF",
++        "surface-dark": "#292524",
++        "text-body": "#374151",
++        "text-body-dark": "#D1D5DB",
++      },
+       fontFamily: {
+-        sans: [
+-          "-apple-system",
+-          "BlinkMacSystemFont",
+-          "SF Pro Text",
+-          "SF Pro Display",
+-          "Segoe UI",
+-          "Helvetica",
+-          "Arial",
+-          "sans-serif"
+-        ]
++        display: ["var(--font-display)", "serif"],
++        sans: ["var(--font-sans)", "sans-serif"],
++        body: ["var(--font-body)", "serif"],
+       },
+-      colors: {
+-        accent: "#b45309"
+-      }
+-    }
++      borderRadius: {
++        DEFAULT: "0.5rem",
++        xl: "1rem",
++        "2xl": "1.5rem",
++        "3xl": "2rem",
++      },
++      keyframes: {
++        "slide-left": {
++          "0%": { transform: "translateX(0)" },
++          "100%": { transform: "translateX(-50%)" },
++        },
++      },
++      animation: {
++        "slide-left": "slide-left 60s linear infinite",
++      },
++    },
+   },
+-  plugins: []
++  plugins: [require('@tailwindcss/typography')],
+ };

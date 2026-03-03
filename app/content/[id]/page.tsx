@@ -1,8 +1,6 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { isContentDetailAdEligible } from "../../../src/ads/eligibility";
-import LandingContentsAd from "../../../src/ads/ui/LandingContentsAd";
 import JsonLdScript from "../../../src/seo/JsonLdScript";
 import {
   getSiteGuideContentById,
@@ -25,7 +23,9 @@ import {
 import type { GuideContentDto, PageResponse } from "../../../src/siteContents/types";
 import RelatedContentsSection from "../../../src/siteContents/ui/RelatedContentsSection";
 import PageShell from "../../../src/ui/PageShell";
-import ReactMarkdown from "react-markdown";
+import { ContentHero } from "../../../src/siteContents/ui/ContentHero";
+import { ContentAuthorSidebar } from "../../../src/siteContents/ui/ContentAuthorSidebar";
+import { ContentBody } from "../../../src/siteContents/ui/ContentBody";
 
 type ContentPageProps = {
   params: { id: string };
@@ -35,7 +35,6 @@ type ContentPageProps = {
 type ContentStateViewProps = {
   title: string;
   message: string;
-  deepLink?: string;
 };
 
 const CONTENTS_REVALIDATE_SECONDS = 120;
@@ -62,15 +61,12 @@ function buildContentErrorMessage(error: SiteContentsApiError): string {
   if (error.status === 404) {
     return "Este conteúdo não foi encontrado. Ele pode ter sido removido.";
   }
-
   if (error.status === 400) {
     return "O identificador informado é inválido.";
   }
-
   if (error.status === 401) {
     return "A API deste conteúdo ainda está protegida (401). O backend precisa liberar leitura pública para o site.";
   }
-
   return error.message || "Não foi possível carregar o conteúdo.";
 }
 
@@ -274,33 +270,7 @@ export default async function ContentPage({ params }: ContentPageProps) {
         data={buildContentArticleJsonLd(content)}
       />
 
-      <div className="relative w-full h-[60vh] md:h-[75vh] overflow-hidden">
-        <div className="absolute inset-0 bg-black/30 z-10"></div>
-        {content.imageUrl ? (
-          <Image
-            alt={`Imagem do conteúdo ${content.title}`}
-            className="w-full h-full object-cover"
-            src={content.imageUrl}
-            fill
-            priority
-            sizes="100vw"
-          />
-        ) : (
-          <div className="w-full h-full bg-stone-800 flex items-center justify-center">
-            <span className="material-icons-outlined text-6xl text-stone-500">article</span>
-          </div>
-        )}
-        <div className="absolute bottom-0 left-0 w-full z-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-32 pb-12">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <span className="inline-block py-1 px-4 rounded-full bg-primary/90 text-white text-xs font-bold tracking-widest uppercase mb-6 backdrop-blur-sm">
-              {content.thriftStoreName || "Comunidade"}
-            </span>
-            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 drop-shadow-lg">
-              {content.title}
-            </h1>
-          </div>
-        </div>
-      </div>
+      <ContentHero content={content} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-30 mb-24">
         <div className="bg-surface-light dark:bg-surface-dark rounded-t-3xl shadow-xl border border-stone-200 dark:border-stone-800 p-6 md:p-12 lg:p-16">
@@ -328,94 +298,13 @@ export default async function ContentPage({ params }: ContentPageProps) {
           </div>
 
           <div className="grid lg:grid-cols-12 gap-12">
-            <div className="lg:col-span-8 font-body text-lg leading-relaxed text-text-body dark:text-text-body-dark">
-              <div className="prose prose-stone dark:prose-invert max-w-none 
-                  prose-p:mb-8 prose-p:leading-relaxed prose-p:text-lg 
-                  prose-headings:font-display prose-headings:font-bold prose-headings:text-stone-900 dark:prose-headings:text-white
-                  prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6
-                  prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                  prose-blockquote:border-l-4 prose-blockquote:border-secondary prose-blockquote:pl-6 prose-blockquote:my-10 prose-blockquote:italic prose-blockquote:font-display prose-blockquote:text-2xl prose-blockquote:text-secondary dark:prose-blockquote:text-green-400 prose-blockquote:bg-secondary/5 dark:prose-blockquote:bg-secondary/10 prose-blockquote:py-6 prose-blockquote:pr-4 prose-blockquote:rounded-r-xl
-                  prose-li:my-2
-                  prose-strong:font-bold prose-strong:text-stone-900 dark:prose-strong:text-white">
-                <ReactMarkdown>{content.description}</ReactMarkdown>
-              </div>
-
-              <hr className="border-stone-200 dark:border-stone-700 my-12" />
-              <div className="flex items-center justify-between">
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs font-medium text-stone-600 dark:text-stone-300">#GuiaBrecho</span>
-                  <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs font-medium text-stone-600 dark:text-stone-300">#Achados</span>
-                  {content.thriftStoreName && (
-                    <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs font-medium text-stone-600 dark:text-stone-300">#{content.thriftStoreName.replace(/\s+/g, '')}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <aside className="lg:col-span-4 space-y-8 mt-12 lg:mt-0">
-              <div className="bg-off-white dark:bg-stone-800/50 p-6 rounded-2xl border border-stone-100 dark:border-stone-700">
-                <h3 className="font-display font-bold text-lg text-stone-900 dark:text-white mb-4 uppercase tracking-wider text-xs">Sobre a Autora</h3>
-                <p className="text-sm text-stone-600 dark:text-stone-400 mb-4 leading-relaxed">
-                  Este conteúdo foi compartilhado por um membro da nossa comunidade de garimpeiros. Participe e ajude a fortalecer a moda circular.
-                </p>
-                <Link href="/contents" className="text-primary text-sm font-bold hover:underline">Ver todos os posts →</Link>
-              </div>
-
-              {content.thriftStoreName && (
-                <div className="bg-white dark:bg-stone-900 p-6 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-800">
-                  <h3 className="font-display font-bold text-xl text-stone-900 dark:text-white mb-6 flex items-center gap-2">
-                    <span className="material-icons-outlined text-primary">store</span>
-                    Brechó Citado
-                  </h3>
-                  <Link 
-                    href={content.thriftStoreId ? `/store/${content.thriftStoreId}` : "#"} 
-                    className="group block"
-                  >
-                    <div className="flex gap-4 items-start">
-                      <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-stone-200 dark:bg-stone-800">
-                        {content.thriftStoreCoverImageUrl ? (
-                          <Image 
-                            alt={content.thriftStoreName} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                            src={content.thriftStoreCoverImageUrl}
-                            width={64}
-                            height={64}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="material-icons-outlined text-stone-400">storefront</span>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-stone-900 dark:text-white group-hover:text-primary transition-colors">{content.thriftStoreName}</h4>
-                        <span className="text-[10px] uppercase font-bold text-secondary tracking-wide border border-secondary/30 px-1.5 py-0.5 rounded mt-2 inline-block">Ver Detalhes</span>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              )}
-
-              {shouldRenderContentAd ? <LandingContentsAd className="mt-2" /> : null}
-
-              <div className="bg-secondary text-white p-8 rounded-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-                <h3 className="font-display font-bold text-2xl mb-2 relative z-10">Receba achados semanais</h3>
-                <p className="text-stone-200 text-sm mb-6 relative z-10">Curadoria exclusiva direto no seu e-mail, toda sexta-feira.</p>
-                <form className="relative z-10" onSubmit={(e) => e.preventDefault()}>
-                  <input className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:ring-2 focus:ring-white/50 focus:border-transparent mb-3 text-sm" placeholder="Seu melhor e-mail" type="email" required />
-                  <button type="submit" className="w-full bg-white text-secondary font-bold py-2.5 rounded-lg hover:bg-stone-100 transition-colors text-sm">
-                    Inscrever-se
-                  </button>
-                </form>
-              </div>
-            </aside>
+            <ContentBody content={content} />
+            <ContentAuthorSidebar content={content} shouldRenderContentAd={shouldRenderContentAd} />
           </div>
         </div>
       </div>
       
       <RelatedContentsSection items={relatedContents} />
-
     </PageShell>
   );
 }
