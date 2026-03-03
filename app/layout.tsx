@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { Playfair_Display, Inter, Lora } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import FirebaseAnalyticsBootstrap from "../src/firebase/FirebaseAnalyticsBootstrap";
 import MixpanelBootstrap from "../src/analytics/MixpanelBootstrap";
@@ -15,6 +15,11 @@ const display = Playfair_Display({
 const sans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const body = Lora({
+  subsets: ["latin"],
+  variable: "--font-body",
 });
 
 export const metadata: Metadata = {
@@ -73,7 +78,7 @@ export default function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${sans.variable}`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${display.variable} ${sans.variable} ${body.variable}`} suppressHydrationWarning>
       <head>
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
         <script id="theme-init" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
