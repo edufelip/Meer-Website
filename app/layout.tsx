@@ -1,7 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Playfair_Display, Inter, Lora } from "next/font/google";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import FirebaseAnalyticsBootstrap from "../src/firebase/FirebaseAnalyticsBootstrap";
 import MixpanelBootstrap from "../src/analytics/MixpanelBootstrap";
 import { androidPackage, appName, iosAppStoreId, webBaseUrl } from "../src/urls";
@@ -92,7 +91,6 @@ export default function RootLayout({
         <FirebaseAnalyticsBootstrap />
         <MixpanelBootstrap />
         {children}
-        {/* <SpeedInsights /> */}
       </body>
     </html>
   );
