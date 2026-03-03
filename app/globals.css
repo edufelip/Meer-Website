@@ -21,6 +21,70 @@ html.dark ::-webkit-scrollbar-thumb:hover {
     background: #6B7280;
 }
 
+@keyframes gb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gb-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gb-page-reveal {
+  opacity: 0;
+  animation: gb-page-fade-in 320ms ease-out forwards;
+}
+
+@keyframes gb-page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.gb-spinner {
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  border: 3px solid color-mix(in srgb, #D97706 24%, transparent);
+  border-top-color: #D97706;
+  animation: gb-spin 0.9s linear infinite;
+}
+
+.dark .gb-spinner {
+  border-color: color-mix(in srgb, #F59E0B 30%, transparent);
+  border-top-color: #F59E0B;
+}
+
+.gb-content-reveal {
+  animation: gb-fade-up 280ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-spinner {
+    animation-duration: 1.8s;
+  }
+
+  .gb-page-reveal {
+    animation: none;
+    opacity: 1;
+  }
+
+  .gb-content-reveal {
+    animation: none;
+  }
+}
+
 @layer components {
   .markdown-body {
     @apply prose prose-stone dark:prose-invert max-w-none 

@@ -16,7 +16,7 @@ export default function PageShell({
   return (
     <>
       <SiteHeader />
-      <main className={contentClassName}>
+      <main className={`gb-page-reveal ${contentClassName}`.trim()}>
         {children}
       </main>
       {showFooter ? <SiteFooter /> : null}

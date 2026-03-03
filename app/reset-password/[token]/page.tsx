@@ -12,7 +12,7 @@ export default function ResetPasswordPage({
   const rulesHint = getPasswordRulesLabels().join(", ");
 
   return (
-    <main className="page">
+    <main className="page gb-page-reveal">
       <section className="hero">
         <span className="eyebrow">Redefinir senha</span>
         <h1>Crie uma nova senha para sua conta.</h1>

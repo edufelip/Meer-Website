@@ -235,7 +235,7 @@ export default function TermsEulaPage() {
 
   return (
     <main
-      className="min-h-screen bg-white text-neutral-900 p-8"
+      className="gb-page-reveal min-h-screen bg-white text-neutral-900 p-8"
       lang={isPortuguese ? "pt-BR" : "en-US"}
     >
       <div className="max-w-3xl mx-auto">
