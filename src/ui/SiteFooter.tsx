@@ -29,10 +29,18 @@ export default function SiteFooter() {
             <p className="text-stone-500 dark:text-stone-400 text-sm leading-relaxed max-w-sm mb-6">
               Conectando quem ama garimpo aos melhores achados da cidade. Apoiamos a moda circular e o consumo consciente.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-stone-400 hover:text-primary transition-colors"><span className="material-icons-outlined">facebook</span></a>
-              <a href="#" className="text-stone-400 hover:text-primary transition-colors"><span className="material-icons-outlined">camera_alt</span></a>
-              <a href="#" className="text-stone-400 hover:text-primary transition-colors"><span className="material-icons-outlined">alternate_email</span></a>
+            <div className="flex">
+              <a
+                href="https://www.instagram.com/guiabrecho"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram do Guia Brechó"
+                className="text-stone-400 hover:text-primary transition-colors"
+              >
+                <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" aria-hidden="true">
+                  <path d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2Zm0 1.5A4.25 4.25 0 0 0 3.5 7.75v8.5A4.25 4.25 0 0 0 7.75 20.5h8.5a4.25 4.25 0 0 0 4.25-4.25v-8.5A4.25 4.25 0 0 0 16.25 3.5h-8.5Zm8.75 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
+                </svg>
+              </a>
             </div>
           </div>
           <div>
@@ -55,24 +63,19 @@ export default function SiteFooter() {
             <ul className="space-y-3">
               {supportLinks.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href as Route}
+                  <a
+                    href={item.href}
                     className="text-stone-600 dark:text-stone-400 hover:text-primary dark:hover:text-primary text-sm transition-colors"
                   >
                     {item.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
           </div>
         </div>
-        <div className="border-t border-stone-200 dark:border-stone-700 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-stone-500 dark:text-stone-500">
+        <div className="border-t border-stone-200 dark:border-stone-700 pt-8 text-xs text-stone-500 dark:text-stone-500">
           <p>© {new Date().getFullYear()} Guia Brechó. Todos os direitos reservados.</p>
-          <div className="mt-4 md:mt-0 flex space-x-6">
-            <Link href="/privacy-policy" className="hover:text-stone-900 dark:hover:text-stone-300">Privacidade</Link>
-            <Link href="/terms-eula" className="hover:text-stone-900 dark:hover:text-stone-300">Termos</Link>
-            <Link href="/privacy-policy" className="hover:text-stone-900 dark:hover:text-stone-300">Cookies</Link>
-          </div>
         </div>
       </div>
     </footer>
