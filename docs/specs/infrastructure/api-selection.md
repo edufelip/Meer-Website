@@ -45,12 +45,12 @@ The base URL is selected based on whether the host is a Development Host:
 
 | Environment | Primary Source | Secondary Source (fallback) | Default Fallback |
 | :--- | :--- | :--- | :--- |
-| **Development** | `process.env.NEXT_PUBLIC_DEV_API_BASE_URL` | `urls.devApiBaseUrl` (from `urls.json`) | `http://localhost:8080` |
-| **Production** | `process.env.NEXT_PUBLIC_API_BASE_URL` | `urls.prodApiBaseUrl` (from `urls.json`) | `http://localhost:8080` |
+| **Development** | `process.env.NEXT_PUBLIC_DEV_API_BASE_URL` | inferred `https://api.<current-host>` | `http://localhost:8080` |
+| **Production** | `process.env.NEXT_PUBLIC_API_BASE_URL` | inferred `https://api.<current-host>` | `http://localhost:8080` |
 
 ## Constraints
 - `NEXT_PUBLIC_` environment variables must be available at build time for client-side use in Next.js.
-- `urls.json` is a shared file located in the parent directory (`../constants/urls.json`).
+- Host inference uses the current host and prefixes it with `api.` when needed.
 
 ## Invariants
 - The API base URL must never be empty; it must fallback to a valid URL.

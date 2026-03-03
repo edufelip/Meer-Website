@@ -29,4 +29,4 @@ These specifications are derived from the existing implementation in the `site/`
     - **URL Scheme**: `meer://`
 - **Official Domains**:
     - `guiabrecho.com.br`
-    - `api.guiabrecho.com.br`
+    - `api.<your-domain>`
