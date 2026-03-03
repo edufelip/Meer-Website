@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -64,8 +65,15 @@ export default function SiteHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
-              <span className="material-icons-outlined">storefront</span>
+            <div className="w-10 h-10 rounded-full overflow-hidden relative">
+              <Image
+                src="/assets/images/app-icon.png"
+                alt="Guia Brechó"
+                fill
+                sizes="40px"
+                className="w-full h-full object-cover"
+                priority
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-display font-bold text-xl text-stone-900 dark:text-white leading-tight">Guia Brechó</span>

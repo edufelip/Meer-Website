@@ -24,6 +24,11 @@ const body = Lora({
 
 export const metadata: Metadata = {
   metadataBase: new URL(webBaseUrl),
+  icons: {
+    icon: "/assets/images/app-icon.png",
+    shortcut: "/assets/images/app-icon.png",
+    apple: "/assets/images/app-icon.png"
+  },
   title: "Guia Brechó - Garimpe com Propósito",
   description: "Guia Brechó. Descubra brechós, conteúdos e dicas de consumo consciente.",
   alternates: {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { isContentDetailAdEligible } from "../../../src/ads/eligibility";
 import JsonLdScript from "../../../src/seo/JsonLdScript";
@@ -256,6 +257,13 @@ export default async function ContentPage({ params }: ContentPageProps) {
     description: content.description
   });
 
+  const contentAuthorLabel = content.thriftStoreId
+    ? content.thriftStoreName
+    : "Equipe GuiaBrechó";
+  const contentAuthorImageUrl = content.thriftStoreId
+    ? content.thriftStoreCoverImageUrl || "/assets/images/app-icon.png"
+    : "/assets/images/app-icon.png";
+
   const words = content.description.trim().split(/\s+/).length;
   const readingTime = Math.max(1, Math.ceil(words / 200)); 
 
@@ -276,11 +284,17 @@ export default async function ContentPage({ params }: ContentPageProps) {
         <div className="bg-surface-light dark:bg-surface-dark rounded-t-3xl shadow-xl border border-stone-200 dark:border-stone-800 p-6 md:p-12 lg:p-16">
           <div className="flex flex-col md:flex-row justify-between items-center border-b border-stone-200 dark:border-stone-700 pb-8 mb-12 gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-stone-200 overflow-hidden ring-2 ring-primary/20 flex items-center justify-center text-stone-500">
-                <span className="material-icons-outlined text-2xl">person</span>
+              <div className="w-14 h-14 rounded-full bg-stone-200 overflow-hidden ring-2 ring-primary/20 relative">
+                <Image
+                  alt={contentAuthorLabel}
+                  className="w-full h-full object-cover"
+                  fill
+                  sizes="56px"
+                  src={contentAuthorImageUrl}
+                />
               </div>
               <div>
-                <p className="font-display font-bold text-stone-900 dark:text-white text-lg">Membro da Comunidade</p>
+                <p className="font-display font-bold text-stone-900 dark:text-white text-lg">{contentAuthorLabel}</p>
                 <p className="text-stone-500 dark:text-stone-400 text-sm">Criador de Conteúdo</p>
               </div>
             </div>
