@@ -23,70 +23,84 @@ function toValidDateOrUndefined(iso: string): Date | undefined {
 }
 
 async function getContentEntries(): Promise<MetadataRoute.Sitemap> {
-  const token = getSiteContentsServerToken();
-  const entries: MetadataRoute.Sitemap = [];
-  let page = 0;
-  let hasNext = true;
+  try {
+    const token = getSiteContentsServerToken();
+    const entries: MetadataRoute.Sitemap = [];
+    let page = 0;
+    let hasNext = true;
 
-  while (hasNext && entries.length < MAX_CONTENT_URLS) {
-    const response = await listSiteGuideContents({
-      page,
-      pageSize: SITEMAP_PAGE_SIZE,
-      sort: "newest",
-      token,
-      revalidate: sitemapRevalidateSeconds
-    });
-
-    if (response.items.length === 0) break;
-
-    for (const content of response.items) {
-      entries.push({
-        url: toAbsoluteUrl(`/content/${content.id}`),
-        lastModified: toValidDateOrUndefined(content.createdAt),
-        changeFrequency: "weekly",
-        priority: 0.7
+    while (hasNext && entries.length < MAX_CONTENT_URLS) {
+      const response = await listSiteGuideContents({
+        page,
+        pageSize: SITEMAP_PAGE_SIZE,
+        sort: "newest",
+        token,
+        revalidate: sitemapRevalidateSeconds
       });
 
-      if (entries.length >= MAX_CONTENT_URLS) break;
+      if (response.items.length === 0) break;
+
+      for (const content of response.items) {
+        entries.push({
+          url: toAbsoluteUrl(`/content/${content.id}`),
+          lastModified: toValidDateOrUndefined(content.createdAt),
+          changeFrequency: "weekly",
+          priority: 0.7
+        });
+
+        if (entries.length >= MAX_CONTENT_URLS) break;
+      }
+
+      hasNext = response.hasNext;
+      page = response.page + 1;
     }
 
-    hasNext = response.hasNext;
-    page = response.page + 1;
+    return entries;
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Sitemap: failed to fetch content entries", error instanceof Error ? error.message : error);
+    }
+    return [];
   }
-
-  return entries;
 }
 
 async function getStoreEntries(): Promise<MetadataRoute.Sitemap> {
-  const entries: MetadataRoute.Sitemap = [];
-  let page = 0;
-  let hasNext = true;
+  try {
+    const entries: MetadataRoute.Sitemap = [];
+    let page = 0;
+    let hasNext = true;
 
-  while (hasNext && entries.length < MAX_STORE_URLS) {
-    const response = await listSiteStores({
-      page,
-      pageSize: STORE_SITEMAP_PAGE_SIZE,
-      revalidate: sitemapRevalidateSeconds
-    });
-
-    if (response.items.length === 0) break;
-
-    for (const store of response.items) {
-      entries.push({
-        url: toAbsoluteUrl(`/store/${store.id}`),
-        lastModified: toValidDateOrUndefined(store.updatedAt || store.createdAt || ""),
-        changeFrequency: "weekly",
-        priority: 0.8
+    while (hasNext && entries.length < MAX_STORE_URLS) {
+      const response = await listSiteStores({
+        page,
+        pageSize: STORE_SITEMAP_PAGE_SIZE,
+        revalidate: sitemapRevalidateSeconds
       });
 
-      if (entries.length >= MAX_STORE_URLS) break;
+      if (response.items.length === 0) break;
+
+      for (const store of response.items) {
+        entries.push({
+          url: toAbsoluteUrl(`/store/${store.id}`),
+          lastModified: toValidDateOrUndefined(store.updatedAt || store.createdAt || ""),
+          changeFrequency: "weekly",
+          priority: 0.8
+        });
+
+        if (entries.length >= MAX_STORE_URLS) break;
+      }
+
+      hasNext = response.hasNext;
+      page = response.page + 1;
     }
 
-    hasNext = response.hasNext;
-    page = response.page + 1;
+    return entries;
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Sitemap: failed to fetch store entries", error instanceof Error ? error.message : error);
+    }
+    return [];
   }
-
-  return entries;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
