@@ -14,7 +14,7 @@ export function StoreInfo({ store }: StoreInfoProps) {
     <div className="lg:col-span-5 space-y-10">
       <section>
         <h3 className="font-display text-2xl font-bold text-stone-900 dark:text-white mb-4">Sobre o Brechó</h3>
-        <p className="text-stone-600 dark:text-stone-300 leading-relaxed mb-6">
+        <p className="text-stone-600 dark:text-stone-300 leading-relaxed mb-6 whitespace-pre-wrap">
           {store.description || "Nenhuma descrição fornecida para este brechó."}
         </p>
         <div className="flex flex-wrap gap-2">

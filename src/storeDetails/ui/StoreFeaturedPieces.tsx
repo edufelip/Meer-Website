@@ -32,11 +32,6 @@ export function StoreFeaturedPieces({ store }: StoreFeaturedPiecesProps) {
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80"></div>
-              <div className="absolute top-4 right-4 z-10">
-                <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white text-white hover:text-primary transition-colors flex items-center justify-center">
-                  <span className="material-icons-outlined">favorite</span>
-                </button>
-              </div>
             </div>
           )}
           {secondaryImage && (

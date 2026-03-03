@@ -10,6 +10,7 @@ type ContentAuthorSidebarProps = {
 };
 
 export function ContentAuthorSidebar({ content, shouldRenderContentAd }: ContentAuthorSidebarProps) {
+  const isGuideContent = content.thriftStoreId === null;
   const storeCardImageUrl = content.thriftStoreId
     ? content.thriftStoreCoverImageUrl || "/assets/images/app-icon.png"
     : "/assets/images/app-icon.png";
@@ -17,9 +18,11 @@ export function ContentAuthorSidebar({ content, shouldRenderContentAd }: Content
   return (
     <aside className="lg:col-span-4 space-y-8 mt-12 lg:mt-0">
       <div className="bg-off-white dark:bg-stone-800/50 p-6 rounded-2xl border border-stone-100 dark:border-stone-700">
-        <h3 className="font-display font-bold text-lg text-stone-900 dark:text-white mb-4 uppercase tracking-wider text-xs">Sobre a Autora</h3>
+        <h3 className="font-display font-bold text-lg text-stone-900 dark:text-white mb-4 uppercase tracking-wider text-xs">Sobre o(a) Autor(a)</h3>
         <p className="text-sm text-stone-600 dark:text-stone-400 mb-4 leading-relaxed">
-          Este conteúdo foi compartilhado por um membro da nossa comunidade de garimpeiros. Participe e ajude a fortalecer a moda circular.
+          {isGuideContent
+            ? "Este conteúdo foi compartilhado por um membro da equibe GuiaBrechó. Feito com muito carinho para nosso querido público"
+            : "Este conteúdo foi compartilhado por um membro da nossa comunidade de garimpeiros. Participe e ajude a fortalecer a moda circular."}
         </p>
         <Link href="/contents" className="text-primary text-sm font-bold hover:underline">Ver todos os posts →</Link>
       </div>

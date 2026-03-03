@@ -42,9 +42,6 @@ export default function FeaturedStoresSection({ stores }: FeaturedStoresSectionP
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-                    <button className="absolute top-4 right-4 w-8 h-8 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white hover:text-primary transition-all">
-                      <span className="material-icons-outlined text-sm">favorite_border</span>
-                    </button>
                   </div>
                   <h3 className="font-display font-bold text-xl text-stone-900 dark:text-white group-hover:text-primary transition-colors">{store.name}</h3>
                   {/* Assuming location and niche might not be available, falling back to simple description */}
