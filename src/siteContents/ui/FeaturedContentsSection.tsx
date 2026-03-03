@@ -30,7 +30,7 @@ export default function FeaturedContentsSection({ featured }: FeaturedContentsSe
   const displayItems = featured.items.slice(0, 2);
 
   return (
-    <section className="py-24">
+    <section className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12">
           <span className="text-primary font-bold tracking-wider text-xs uppercase mb-2 block">Conteúdos</span>

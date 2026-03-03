@@ -12,7 +12,7 @@ type FeaturedStoresSectionProps = {
 
 export default function FeaturedStoresSection({ stores }: FeaturedStoresSectionProps) {
   return (
-    <section className="py-24 bg-white dark:bg-stone-900/50">
+    <section className="py-12 bg-white dark:bg-stone-900/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-end mb-12">
           <div>
