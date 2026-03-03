@@ -1,9 +1,11 @@
 import Image from "next/image";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 import { androidStoreUrl, iosStoreUrl } from "../src/urls";
 import { listSiteGuideContents, SiteContentsApiError } from "../src/siteContents/api";
 import { getSiteContentsServerToken } from "../src/siteContents/serverAuth";
 import { listFeaturedStores } from "../src/featuredStores/api";
+import { resolveRequestHostname } from "../src/server/requestHost";
 import FeaturedContentsSection, {
   type FeaturedContentState
 } from "../src/siteContents/ui/FeaturedContentsSection";
@@ -33,7 +35,7 @@ const features = [
   },
 ];
 
-async function getFeaturedContents(): Promise<FeaturedContentState> {
+async function getFeaturedContents(hostname?: string): Promise<FeaturedContentState> {
   const token = getSiteContentsServerToken();
 
   try {
@@ -42,6 +44,7 @@ async function getFeaturedContents(): Promise<FeaturedContentState> {
       pageSize: 8,
       sort: "newest",
       token,
+      hostname,
       revalidate: 300
     });
 
@@ -55,27 +58,27 @@ async function getFeaturedContents(): Promise<FeaturedContentState> {
   }
 }
 
-async function FeaturedContentsSectionContainer() {
-  const featured = await getFeaturedContents();
+async function FeaturedContentsSectionContainer({ hostname }: { hostname?: string }) {
+  const featured = await getFeaturedContents(hostname);
   return <FeaturedContentsSection featured={featured} />;
 }
 
-async function getFeaturedStores() {
+async function getFeaturedStores(hostname?: string) {
   try {
-    return await listFeaturedStores();
+    return await listFeaturedStores({ hostname });
   } catch {
     return [];
   }
 }
 
-async function FeaturedStoresSectionContainer() {
-  const stores = await getFeaturedStores();
+async function FeaturedStoresSectionContainer({ hostname }: { hostname?: string }) {
+  const stores = await getFeaturedStores(hostname);
   return <FeaturedStoresSection stores={stores} />;
 }
 
 function FeaturedContentsSkeleton() {
   return (
-    <section className="py-24">
+    <section className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12 animate-pulse">
           <div className="h-4 w-24 bg-stone-200 dark:bg-stone-700 rounded mb-4"></div>
@@ -93,7 +96,7 @@ function FeaturedContentsSkeleton() {
 
 function FeaturedStoresSkeleton() {
   return (
-    <section className="py-24 bg-white dark:bg-stone-900/50">
+    <section className="py-12 bg-white dark:bg-stone-900/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12 animate-pulse">
           <div className="h-4 w-32 bg-stone-200 dark:bg-stone-700 rounded mb-4"></div>
@@ -110,6 +113,9 @@ function FeaturedStoresSkeleton() {
 }
 
 export default function HomePage() {
+  const requestHeaders = headers();
+  const requestHostname = resolveRequestHostname(requestHeaders);
+
   return (
     <PageShell>
       <HomeSectionIntentHandler />
@@ -204,7 +210,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section id="explorar" className="py-16 bg-white dark:bg-stone-900/50 scroll-mt-20">
+      <section id="explorar" className="py-12 bg-white dark:bg-stone-900/50 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {features.map((feature) => (
@@ -230,13 +236,13 @@ export default function HomePage() {
 
       <div id="conteudos" className="scroll-mt-20">
         <Suspense fallback={<FeaturedContentsSkeleton />}>
-          <FeaturedContentsSectionContainer />
+          <FeaturedContentsSectionContainer hostname={requestHostname} />
         </Suspense>
       </div>
 
       <div id="destaques" className="scroll-mt-20">
         <Suspense fallback={<FeaturedStoresSkeleton />}>
-          <FeaturedStoresSectionContainer />
+          <FeaturedStoresSectionContainer hostname={requestHostname} />
         </Suspense>
       </div>
     </PageShell>

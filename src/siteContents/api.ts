@@ -13,6 +13,7 @@ type ListGuideContentsParams = {
   sort?: ContentSort;
   storeId?: string;
   token?: string | null;
+  hostname?: string | null;
   cache?: RequestCache;
   revalidate?: number;
 };
@@ -21,12 +22,14 @@ type ListGuideContentCommentsParams = {
   page?: number;
   pageSize?: number;
   token?: string | null;
+  hostname?: string | null;
   cache?: RequestCache;
   revalidate?: number;
 };
 
 type RequestOptions = {
   token?: string | null;
+  hostname?: string | null;
   cache?: RequestCache;
   revalidate?: number;
 };
@@ -98,7 +101,7 @@ async function parseError(response: Response): Promise<never> {
 }
 
 async function requestJson<T>(path: string, searchParams: URLSearchParams, options?: RequestOptions): Promise<T> {
-  const selectedApiBase = selectApiBase();
+  const selectedApiBase = selectApiBase(options?.hostname);
   if (!selectedApiBase) {
     throw new SiteContentsApiError(503, "API base URL nao configurada.");
   }
@@ -154,6 +157,7 @@ export async function listSiteGuideContents(
 
   return requestJson<PageResponse<GuideContentDto>>("/site/contents", searchParams, {
     token: params?.token,
+    hostname: params?.hostname,
     cache: params?.cache,
     revalidate: params?.revalidate
   });
@@ -165,6 +169,7 @@ export async function getSiteGuideContentById(
 ): Promise<GuideContentDto> {
   return requestJson<GuideContentDto>(`/site/contents/${id}`, new URLSearchParams(), {
     token: options?.token,
+    hostname: options?.hostname,
     cache: options?.cache,
     revalidate: options?.revalidate
   });
@@ -186,6 +191,7 @@ export async function listSiteGuideContentComments(
     searchParams,
     {
       token: params?.token,
+      hostname: params?.hostname,
       cache: params?.cache,
       revalidate: params?.revalidate
     }

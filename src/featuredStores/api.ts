@@ -6,10 +6,11 @@ const FEATURED_STORES_REVALIDATE_SECONDS = 300;
 
 type FeaturedStoresApiOptions = {
   revalidate?: number;
+  hostname?: string | null;
 };
 
-function resolveFeaturedStoresEndpoint(): string {
-  const selectedApiBase = selectApiBase();
+function resolveFeaturedStoresEndpoint(hostname?: string | null): string {
+  const selectedApiBase = selectApiBase(hostname);
   if (!selectedApiBase) {
     throw new Error("API base URL nao configurada.");
   }
@@ -39,7 +40,7 @@ function normalizeStore(item: unknown): FeaturedStore | null {
 export async function listFeaturedStores(
   options?: FeaturedStoresApiOptions
 ): Promise<FeaturedStore[]> {
-  const endpoint = resolveFeaturedStoresEndpoint();
+  const endpoint = resolveFeaturedStoresEndpoint(options?.hostname);
   const response = await loggedFetch(endpoint, {
     method: "GET",
     headers: {
