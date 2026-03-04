@@ -97,7 +97,7 @@ export default async function ContentsPage({ searchParams }: ContentsPageProps) 
           {featuredContent ? (
             <Link
               href={`/content/${featuredContent.id}`}
-              className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[16/9] max-h-[600px] group block"
+              className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[16/9] max-h-[600px] group block w-full max-w-5xl mx-auto"
             >
               <Image
                 alt={`Imagem do conteúdo ${featuredContent.title}`}
