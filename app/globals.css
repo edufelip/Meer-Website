@@ -86,6 +86,58 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 @layer components {
+  .surface-card {
+    @apply rounded-2xl border border-stone-200/80 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900;
+  }
+
+  .content-card {
+    @apply p-0 transition-transform duration-200 hover:-translate-y-0.5;
+  }
+
+  .content-card-link {
+    @apply flex min-h-full flex-col;
+  }
+
+  .content-card-image-wrap {
+    @apply relative h-[180px] overflow-hidden bg-stone-100 dark:bg-stone-800;
+  }
+
+  .content-card-image {
+    @apply h-full w-full object-cover;
+  }
+
+  .content-card-image-fallback {
+    @apply flex h-full w-full items-center justify-center text-sm font-medium text-stone-500 dark:text-stone-400;
+  }
+
+  .content-card-body {
+    @apply flex flex-1 flex-col gap-2 p-4;
+  }
+
+  .content-card-store {
+    @apply m-0 text-[11px] font-bold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400;
+  }
+
+  .content-card-body h3 {
+    @apply m-0 text-lg font-semibold leading-tight text-stone-900 dark:text-stone-100;
+  }
+
+  .content-card-excerpt {
+    @apply m-0 text-sm leading-relaxed text-stone-600 dark:text-stone-300;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .content-card-meta {
+    @apply mt-auto flex flex-wrap gap-2.5 text-xs text-stone-500 dark:text-stone-400;
+  }
+
+  .button-disabled {
+    @apply pointer-events-none opacity-60 shadow-none;
+  }
+
   .markdown-body {
     @apply prose prose-stone dark:prose-invert max-w-none 
     prose-p:mb-8 prose-p:leading-relaxed prose-p:text-lg 

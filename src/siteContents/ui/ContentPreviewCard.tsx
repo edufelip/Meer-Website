@@ -40,7 +40,7 @@ export default function ContentPreviewCard({
         <div className="content-card-body">
           <p className="content-card-store">{item.thriftStoreName || "Comunidade"}</p>
           <h3>{item.title}</h3>
-          <p>{item.description}</p>
+          <p className="content-card-excerpt">{item.description}</p>
           <div className="content-card-meta">
             <span>{formatDateShort(item.createdAt)}</span>
             {showLikeCount ? <span>{item.likeCount} curtidas</span> : null}
