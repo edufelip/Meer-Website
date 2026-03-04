@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -21,8 +22,14 @@ export default function SiteFooter() {
         <div className="grid md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
-                <span className="material-icons-outlined text-sm">storefront</span>
+              <div className="relative w-8 h-8 rounded-full overflow-hidden">
+                <Image
+                  src="/assets/images/app-icon.png"
+                  alt="Logo Guia Brechó"
+                  fill
+                  sizes="32px"
+                  className="object-cover"
+                />
               </div>
               <span className="font-display font-bold text-lg text-stone-900 dark:text-white">Guia Brechó</span>
             </div>
